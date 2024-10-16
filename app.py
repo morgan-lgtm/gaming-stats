@@ -95,16 +95,15 @@ with tabs[0]:
 
     # Enhance MVP section with visual and layout improvements, including the team logo
     st.markdown("""
-        <div style="background-color:#f9f9f9;padding:20px;border-radius:10px;margin-bottom:20px;text-align:center;">
-            <img src="https://1000logos.net/wp-content/uploads/2018/06/Nashville-Predators-Logo.png" alt="Team Logo" style="width:100px;height:auto;margin-bottom:10px;">
-            <h2 style="color:#041E42;">🏅 Current MVP (Last 5 Games)</h2>
-            <h1 style="color:#228B22;font-size:48px;">{}</h1>
-            <p style="font-size:24px;">Scored <strong>{}</strong> goals in the last 5 games!</p>
+        <div style="background-color:#f9f9f9;padding:5px 10px;border-radius:10px;margin-bottom:10px;text-align:center;">
+            <img src="https://1000logos.net/wp-content/uploads/2018/06/Nashville-Predators-Logo.png" alt="Team Logo" style="width:50px;height:auto;margin-bottom:5px;">
+            <h2 style="color:#041E42;font-size:20px;margin:5px 0;">🏅 Current MVP (Last 5 Games)</h2>
+            <h1 style="color:#228B22;font-size:28px;margin:5px 0;">{}</h1>
+            <p style="font-size:16px;margin:5px 0;">Scored <strong>{}</strong> goals in the last 5 games!</p>
         </div>
         """.format(mvp_player, mvp_goals),
         unsafe_allow_html=True
     )
-
     # Rest of the Overview metrics
     cols = st.columns(4)
     
