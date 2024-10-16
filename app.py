@@ -61,8 +61,8 @@ if df.empty:
     st.stop()
 
 # Display DataFrame Columns for Verification
-st.sidebar.header("Data Information")
-st.sidebar.write("### DataFrame Columns:", df.columns.tolist())
+# st.sidebar.header("Data Information")
+# st.sidebar.write("### DataFrame Columns:", df.columns.tolist())
 
 # Sidebar for AI Insights
 with st.sidebar:
