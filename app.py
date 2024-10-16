@@ -99,7 +99,7 @@ with tabs[0]:
             <img src="https://1000logos.net/wp-content/uploads/2018/06/Nashville-Predators-Logo.png" alt="Team Logo" style="width:50px;height:auto;margin-bottom:5px;">
             <h2 style="color:#041E42;font-size:20px;margin:5px 0;">🏅 Current MVP (Last 5 Games)</h2>
             <h1 style="color:#228B22;font-size:28px;margin:5px 0;">{}</h1>
-            <p style="font-size:16px;margin:5px 0;">Scored <strong>{}</strong> goals in the last 5 games!</p>
+            <p style="color:#041E42;font-size:16px;margin:5px 0;">Scored <strong>{}</strong> goals in the last 5 games!</p>
         </div>
         """.format(mvp_player, mvp_goals),
         unsafe_allow_html=True
