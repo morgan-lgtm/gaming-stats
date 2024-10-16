@@ -68,7 +68,21 @@ tabs = st.tabs(["Dashboard", "Team Analysis", "Player Analysis", "Opponent Analy
 
 # Dashboard Tab
 with tabs[0]:
-    st.header("🏒 Overview")
+    st.header("Overview")
+
+    # Wins-Losses-Forfeits (Quits) Distribution
+    df['Result Category'] = df['Win / Loss'].map({
+        'Win': 'Win',
+        'Loss': 'Loss',
+        'Quit': 'Forfeit'  # Treat quits as forfeits
+    })
+
+    # Display Win-Loss-Forfeit Record
+    wins = (df['Result Category'] == 'Win').sum()
+    losses = (df['Result Category'] == 'Loss').sum()
+    forfeits = (df['Result Category'] == 'Forfeit').sum()
+
+    st.subheader(f"Record: {wins}-{losses}-{forfeits}")
     
     # Calculate MVP Based on Last 5 Games
     last_5_games = df.tail(5)
@@ -94,18 +108,31 @@ with tabs[0]:
     # Rest of the Overview metrics
     cols = st.columns(4)
     
-    # Calculate Current Streak
-    streak = 0
-    for diff in reversed(df['Goal Differential']):
-        if diff > 0:
-            streak += 1
-        elif diff < 0:
-            streak -= 1
-            break
-        else:
-            break
-    streak_label = f"{abs(streak)} game {'positive' if streak > 0 else 'negative'}"
-    
+    # Calculate Current Streak (Consecutive Wins or Losses)
+    def calculate_streak(df):
+        streak = 0
+        streak_type = None
+        
+        for diff in reversed(df['Goal Differential']):
+            if diff > 0:
+                if streak_type is None or streak_type == 'win':
+                    streak_type = 'win'
+                    streak += 1
+                else:
+                    break
+            elif diff < 0:
+                if streak_type is None or streak_type == 'loss':
+                    streak_type = 'loss'
+                    streak += 1
+                else:
+                    break
+            else:
+                break
+        return streak, streak_type
+
+    streak, streak_type = calculate_streak(df)
+    streak_label = f"{streak} {'wins' if streak_type == 'win' else 'losses' if streak_type == 'loss' else 'games'}"
+
     metrics = [
         ("Total Games", len(df)),
         ("Avg Goal Differential", f"{df['Goal Differential'].mean():.2f}"),
@@ -115,21 +142,22 @@ with tabs[0]:
     for col, (label, value) in zip(cols, metrics):
         col.metric(label, value)
     
-    # Pie Chart for Wins, Losses, and Quits
-    st.subheader("Performance Distribution")
-    performance_counts = df['Win / Loss'].value_counts().reset_index()
+
+
+    # Pie Chart for Wins, Losses, and Forfeits
+    performance_counts = df['Result Category'].value_counts().reset_index()
     performance_counts.columns = ['Result', 'Count']
-    
+
     fig_pie = px.pie(
         performance_counts,
         names='Result',
         values='Count',
-        title='Wins, Losses, and Quits Distribution',
+        title='Wins, Losses, and Forfeits Distribution',
         color='Result',
         color_discrete_map={
             'Win': 'green',
             'Loss': 'red',
-            'Quit': 'gray'  # Adjust based on actual category names
+            'Forfeit': 'gray'
         },
         hole=0.4  # Creates a donut chart; set to 0 for a full pie chart
     )
@@ -137,7 +165,7 @@ with tabs[0]:
     
     # Goal Differential Chart Using SequentialIndex
     plot_df = df.tail(10)  # Last 10 games
-    plot_df['Color'] = plot_df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Tie'))
+    plot_df['Color'] = plot_df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Forfeit'))
     
     fig_goal_diff = px.line(
         plot_df,
@@ -151,7 +179,7 @@ with tabs[0]:
             'Goal Differential': True
         },
         color='Color',
-        color_discrete_map={'Win': 'blue', 'Loss': 'red', 'Tie': 'gray'}
+        color_discrete_map={'Win': 'blue', 'Loss': 'red', 'Forfeit': 'gray'}
     )
     
     fig_goal_diff.update_xaxes(
@@ -176,7 +204,7 @@ with tabs[5]:
         f"**Average Goal Differential**: {df['Goal Differential'].mean():.2f}. {'Focus on improving defensive strategies.' if df['Goal Differential'].mean() < 0 else 'Keep up the good offensive work!'}",
         f"**Best Performance Against Teams with {df.groupby('# Opponent Players')['Goal Differential'].mean().idxmax()} Players**. Consider strategies that work well in these matchups.",
         f"**Top Performer**: {'Nolan' if df[df['Nolan Goal'] > 0]['Goal Differential'].mean() > max(df[df['Andrew Goal'] > 0]['Goal Differential'].mean(), df[df['Morgan Goal'] > 0]['Goal Differential'].mean()) else 'Andrew' if df[df['Andrew Goal'] > 0]['Goal Differential'].mean() > df[df['Morgan Goal'] > 0]['Goal Differential'].mean() else 'Morgan'} has the highest impact on goal differential when scoring. Creating more opportunities for them could improve overall performance.",
-        "**Close Games Analysis**: Analyze your performance in close games (goal differential between -1 and 1) to identify areas for improvement in tight situations."
+        f"**Close Games Analysis**: Analyze your performance in close games (goal differential between -1 and 1) to identify areas for improvement in tight situations."
     ]
 
     for insight in insights:
@@ -370,8 +398,8 @@ with tabs[4]:
         df,
         x='SequentialIndex',
         y='Goal Differential',
-        color=df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Tie')),
-        color_discrete_map={'Win': 'blue', 'Loss': 'red', 'Tie': 'gray'},
+        color=df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Forfeit')),
+        color_discrete_map={'Win': 'blue', 'Loss': 'red', 'Forfeit': 'gray'},
         hover_data={
             'SequentialIndex': False,
             'DateTime': True,
