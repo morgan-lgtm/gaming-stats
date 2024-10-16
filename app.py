@@ -60,27 +60,11 @@ df = load_data()
 if df.empty:
     st.stop()
 
-# Display DataFrame Columns for Verification
-# st.sidebar.header("Data Information")
-# st.sidebar.write("### DataFrame Columns:", df.columns.tolist())
-
-# Sidebar for AI Insights
-with st.sidebar:
-    st.header("AI Insights")
-    if st.button("Generate AI Insights"):
-        insights = [
-            f"**Average Goal Differential**: {df['Goal Differential'].mean():.2f}. {'Focus on improving defensive strategies.' if df['Goal Differential'].mean() < 0 else 'Keep up the good offensive work!'}",
-            f"**Best Performance Against Teams with {df.groupby('# Opponent Players')['Goal Differential'].mean().idxmax()} Players**. Consider strategies that work well in these matchups.",
-            f"**Top Performer**: {'Nolan' if df[df['Nolan Goal'] > 0]['Goal Differential'].mean() > max(df[df['Andrew Goal'] > 0]['Goal Differential'].mean(), df[df['Morgan Goal'] > 0]['Goal Differential'].mean()) else 'Andrew' if df[df['Andrew Goal'] > 0]['Goal Differential'].mean() > df[df['Morgan Goal'] > 0]['Goal Differential'].mean() else 'Morgan'} has the highest impact on goal differential when scoring. Creating more opportunities for them could improve overall performance.",
-            "**Close Games Analysis**: Analyze your performance in close games (goal differential between -1 and 1) to identify areas for improvement in tight situations."
-        ]
-        for insight in insights:
-            st.info(insight)
 
 # Main Dashboard with Tabs
 st.title("🏒 NHL Gaming Analytics Dashboard")
 
-tabs = st.tabs(["Dashboard", "Team Analysis", "Player Analysis", "Opponent Analysis", "Game Breakdown", "Predictions"])
+tabs = st.tabs(["Dashboard", "Team Analysis", "Player Analysis", "Opponent Analysis", "Game Breakdown", "AI Insights", "Predictions"])
 
 # Dashboard Tab
 with tabs[0]:
@@ -95,7 +79,7 @@ with tabs[0]:
     mvp_player = max(last_5_goals, key=last_5_goals.get)
     mvp_goals = last_5_goals[mvp_player]
 
-    # Enhance MVP section with visual and layout improvements
+    # Enhance MVP section with visual and layout improvements, including the team logo
     st.markdown("""
         <div style="background-color:#f9f9f9;padding:20px;border-radius:10px;margin-bottom:20px;text-align:center;">
             <img src="https://1000logos.net/wp-content/uploads/2018/06/Nashville-Predators-Logo.png" alt="Team Logo" style="width:100px;height:auto;margin-bottom:10px;">
@@ -183,7 +167,22 @@ with tabs[0]:
     )
     st.plotly_chart(fig_goal_diff, use_container_width=True)
 
-# Team Analysis Tab
+# AI Insights Tab
+with tabs[5]:
+    st.header("AI-Generated Insights")
+
+    # Automatically Generate AI Insights
+    insights = [
+        f"**Average Goal Differential**: {df['Goal Differential'].mean():.2f}. {'Focus on improving defensive strategies.' if df['Goal Differential'].mean() < 0 else 'Keep up the good offensive work!'}",
+        f"**Best Performance Against Teams with {df.groupby('# Opponent Players')['Goal Differential'].mean().idxmax()} Players**. Consider strategies that work well in these matchups.",
+        f"**Top Performer**: {'Nolan' if df[df['Nolan Goal'] > 0]['Goal Differential'].mean() > max(df[df['Andrew Goal'] > 0]['Goal Differential'].mean(), df[df['Morgan Goal'] > 0]['Goal Differential'].mean()) else 'Andrew' if df[df['Andrew Goal'] > 0]['Goal Differential'].mean() > df[df['Morgan Goal'] > 0]['Goal Differential'].mean() else 'Morgan'} has the highest impact on goal differential when scoring. Creating more opportunities for them could improve overall performance.",
+        "**Close Games Analysis**: Analyze your performance in close games (goal differential between -1 and 1) to identify areas for improvement in tight situations."
+    ]
+
+    for insight in insights:
+        st.info(insight)
+
+# Team Analysis Tab (Tab 2)
 with tabs[1]:
     st.header("Team Performance Analysis")
     team_stats = {
@@ -195,7 +194,6 @@ with tabs[1]:
         'Comeback Rate': ((df['Opponent Goals'] > df['Us Goals']) & (df['Goal Differential'] > 0)).mean()
     }
     values = list(team_stats.values())
-    # Color Coding: Red for negative values, Blue otherwise
     colors = ['red' if v < 0 else 'blue' for v in values]
     
     fig = go.Figure(
@@ -209,18 +207,17 @@ with tabs[1]:
     fig.update_layout(
         title="Team Performance Metrics",
         polar=dict(radialaxis=dict(visible=True)),
-        showlegend=False  # Hide legend since colors indicate positive/negative
+        showlegend=False
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    # Explanatory Text for Color Coding
     st.markdown("""
     **Color Coding:**
     - 🟦 **Blue**: Positive Values
     - 🟥 **Red**: Negative Values
     """)
 
-# Player Analysis Tab
+# Player Analysis Tab (Tab 3)
 with tabs[2]:
     st.header("Player Performance Analysis")
     
@@ -253,7 +250,7 @@ with tabs[2]:
     )
     st.plotly_chart(fig_synergy, use_container_width=True)
     
-    # New Section: Individual Player Statistics
+    # Individual Player Statistics
     st.subheader("Individual Player Statistics")
     
     players = ['Nolan', 'Andrew', 'Morgan']
@@ -264,6 +261,7 @@ with tabs[2]:
         'Highest Goals in a Single Game': [df[f'{player} Goal'].max() for player in players]
     })
     
+    # Display individual player stats in a table
     st.table(player_stats.style.format({
         'Average Goals per Game': "{:.2f}",
         'Total Goals': "{:.0f}",
@@ -315,7 +313,7 @@ with tabs[2]:
     fig_highest_goals.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
     st.plotly_chart(fig_highest_goals, use_container_width=True)
 
-# Opponent Analysis Tab
+# Opponent Analysis Tab (Tab 4)
 with tabs[3]:
     st.header("Opponent Analysis")
     avg_performance = df.groupby('# Opponent Players').agg({
@@ -363,7 +361,7 @@ with tabs[3]:
     fig.update_yaxes(title_text="Goals", secondary_y=True)
     st.plotly_chart(fig, use_container_width=True)
 
-# Game Breakdown Tab
+# Game Breakdown Tab (Tab 5)
 with tabs[4]:
     st.header("Game-by-Game Breakdown")
     
@@ -409,22 +407,23 @@ with tabs[4]:
     for col, (label, value) in zip(detail_cols, details):
         col.metric(label, value)
 
-# Predictions Tab
-with tabs[5]:
+# Predictions Tab (Tab 6)
+with tabs[6]:
     st.header("Predictions and What-If Scenarios")
-    # Update feature columns to match the input keys
-    feature_cols = ['Us # Players', '# Opponent Players', 'Nolan Goal', 'Andrew Goal', 'Morgan Goal']
     
     # Ensure the DataFrame has these columns
-    required_columns = feature_cols + ['Goal Differential']
-    missing_columns = [col for col in required_columns if col not in df.columns]
+    feature_cols = ['Us # Players', '# Opponent Players', 'Nolan Goal', 'Andrew Goal', 'Morgan Goal']
+    
+    # Ensure required columns are present
+    missing_columns = [col for col in feature_cols + ['Goal Differential'] if col not in df.columns]
     if missing_columns:
         st.error(f"The following required columns are missing from the data: {missing_columns}")
     else:
-        # Further check for any remaining NaN values
+        # Check for missing values in required columns
         if df[feature_cols + ['Goal Differential']].isna().sum().sum() > 0:
-            st.error("There are still missing values in the dataset. Please check the data cleaning steps.")
+            st.error("There are missing values in the dataset. Please check the data cleaning steps.")
         else:
+            # Prepare the data for predictions
             X = df[feature_cols]
             y = df['Goal Differential']
             
