@@ -85,6 +85,29 @@ tabs = st.tabs(["Dashboard", "Team Analysis", "Player Analysis", "Opponent Analy
 # Dashboard Tab
 with tabs[0]:
     st.header("🏒 Overview")
+    
+    # Calculate MVP Based on Last 5 Games
+    last_5_games = df.tail(5)
+    players = ['Nolan', 'Andrew', 'Morgan']
+    
+    # Calculate total goals for each player over the last 5 games
+    last_5_goals = {player: last_5_games[f'{player} Goal'].sum() for player in players}
+    mvp_player = max(last_5_goals, key=last_5_goals.get)
+    mvp_goals = last_5_goals[mvp_player]
+
+    # Enhance MVP section with visual and layout improvements
+    st.markdown("""
+        <div style="background-color:#f9f9f9;padding:20px;border-radius:10px;margin-bottom:20px;text-align:center;">
+            <img src="https://1000logos.net/wp-content/uploads/2018/06/Nashville-Predators-Logo.png" alt="Team Logo" style="width:100px;height:auto;margin-bottom:10px;">
+            <h2 style="color:#041E42;">🏅 Current MVP (Last 5 Games)</h2>
+            <h1 style="color:#228B22;font-size:48px;">{}</h1>
+            <p style="font-size:24px;">Scored <strong>{}</strong> goals in the last 5 games!</p>
+        </div>
+        """.format(mvp_player, mvp_goals),
+        unsafe_allow_html=True
+    )
+
+    # Rest of the Overview metrics
     cols = st.columns(4)
     
     # Calculate Current Streak
@@ -110,7 +133,6 @@ with tabs[0]:
     
     # Pie Chart for Wins, Losses, and Quits
     st.subheader("Performance Distribution")
-    # Ensure 'Win / Loss' has categories like 'Win', 'Loss', 'Quit'
     performance_counts = df['Win / Loss'].value_counts().reset_index()
     performance_counts.columns = ['Result', 'Count']
     
@@ -131,7 +153,6 @@ with tabs[0]:
     
     # Goal Differential Chart Using SequentialIndex
     plot_df = df.tail(10)  # Last 10 games
-    # Add a 'Color' column to distinguish positive and negative differentials
     plot_df['Color'] = plot_df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Tie'))
     
     fig_goal_diff = px.line(
