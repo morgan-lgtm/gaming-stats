@@ -138,8 +138,8 @@ with tabs[0]:
     def calculate_streak(df):
         streak = 0
         streak_type = None
-
-        for diff in reversed(df['Goal Differential']):
+        
+        for diff in reversed(df[df['Win / Loss']!='Quit']['Goal Differential']):
             if diff > 0:
                 if streak_type is None or streak_type == 'win':
                     streak_type = 'win'
