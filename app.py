@@ -60,11 +60,18 @@ df = load_data()
 if df.empty:
     st.stop()
 
-
 # Main Dashboard with Tabs
 st.title("🏒 NHL Gaming Analytics Dashboard")
 
-tabs = st.tabs(["Dashboard", "Team Analysis", "Player Analysis", "Opponent Analysis", "Game Breakdown", "AI Insights", "Predictions"])
+tabs = st.tabs([
+    "Dashboard",
+    "Team Analysis",
+    "Player Analysis",
+    "Opponent Analysis",
+    "Game Breakdown",
+    "AI Insights",
+    "Predictions"
+])
 
 # Dashboard Tab
 with tabs[0]:
@@ -83,11 +90,11 @@ with tabs[0]:
     forfeits = (df['Result Category'] == 'Forfeit').sum()
 
     st.subheader(f"Record: {wins}-{losses}-{forfeits}")
-    
+
     # Calculate MVP Based on Last 5 Games
     last_5_games = df.tail(5)
     players = ['Nolan', 'Andrew', 'Morgan']
-    
+
     # Calculate total goals for each player over the last 5 games
     last_5_goals = {player: last_5_games[f'{player} Goal'].sum() for player in players}
     mvp_player = max(last_5_goals, key=last_5_goals.get)
@@ -104,14 +111,15 @@ with tabs[0]:
         """.format(mvp_player, mvp_goals),
         unsafe_allow_html=True
     )
+
     # Rest of the Overview metrics
     cols = st.columns(4)
-    
+
     # Calculate Current Streak (Consecutive Wins or Losses)
     def calculate_streak(df):
         streak = 0
         streak_type = None
-        
+
         for diff in reversed(df['Goal Differential']):
             if diff > 0:
                 if streak_type is None or streak_type == 'win':
@@ -140,8 +148,6 @@ with tabs[0]:
     ]
     for col, (label, value) in zip(cols, metrics):
         col.metric(label, value)
-    
-
 
     # Pie Chart for Wins, Losses, and Forfeits
     performance_counts = df['Result Category'].value_counts().reset_index()
@@ -161,11 +167,13 @@ with tabs[0]:
         hole=0.4  # Creates a donut chart; set to 0 for a full pie chart
     )
     st.plotly_chart(fig_pie, use_container_width=True)
-    
+
     # Goal Differential Chart Using SequentialIndex
     plot_df = df.tail(10)  # Last 10 games
-    plot_df['Color'] = plot_df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Forfeit'))
-    
+    plot_df['Color'] = plot_df['Goal Differential'].apply(
+        lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Forfeit')
+    )
+
     fig_goal_diff = px.line(
         plot_df,
         x='SequentialIndex',
@@ -180,7 +188,7 @@ with tabs[0]:
         color='Color',
         color_discrete_map={'Win': 'blue', 'Loss': 'red', 'Forfeit': 'gray'}
     )
-    
+
     fig_goal_diff.update_xaxes(
         title="Date and Time",
         tickmode='array',
@@ -194,20 +202,24 @@ with tabs[0]:
     )
     st.plotly_chart(fig_goal_diff, use_container_width=True)
 
-# AI Insights Tab
-with tabs[5]:
-    st.header("AI-Generated Insights")
+    # Game Highlights
+    st.subheader("Game Highlights")
+    best_game = df.loc[df['Goal Differential'].idxmax()]
+    worst_game = df.loc[df['Goal Differential'].idxmin()]
 
-    # Automatically Generate AI Insights
-    insights = [
-        f"**Average Goal Differential**: {df['Goal Differential'].mean():.2f}. {'Focus on improving defensive strategies.' if df['Goal Differential'].mean() < 0 else 'Keep up the good offensive work!'}",
-        f"**Best Performance Against Teams with {df.groupby('# Opponent Players')['Goal Differential'].mean().idxmax()} Players**. Consider strategies that work well in these matchups.",
-        f"**Top Performer**: {'Nolan' if df[df['Nolan Goal'] > 0]['Goal Differential'].mean() > max(df[df['Andrew Goal'] > 0]['Goal Differential'].mean(), df[df['Morgan Goal'] > 0]['Goal Differential'].mean()) else 'Andrew' if df[df['Andrew Goal'] > 0]['Goal Differential'].mean() > df[df['Morgan Goal'] > 0]['Goal Differential'].mean() else 'Morgan'} has the highest impact on goal differential when scoring. Creating more opportunities for them could improve overall performance.",
-        f"**Close Games Analysis**: Analyze your performance in close games (goal differential between -1 and 1) to identify areas for improvement in tight situations."
-    ]
-
-    for insight in insights:
-        st.info(insight)
+    highlight_cols = st.columns(2)
+    with highlight_cols[0]:
+        st.markdown("### Best Game")
+        st.metric(
+            label=f"Game on {best_game['Date'].strftime('%Y-%m-%d')}",
+            value=f"Goal Differential: {best_game['Goal Differential']}"
+        )
+    with highlight_cols[1]:
+        st.markdown("### Worst Game")
+        st.metric(
+            label=f"Game on {worst_game['Date'].strftime('%Y-%m-%d')}",
+            value=f"Goal Differential: {worst_game['Goal Differential']}"
+        )
 
 # Team Analysis Tab (Tab 2)
 with tabs[1]:
@@ -215,89 +227,76 @@ with tabs[1]:
     team_stats = {
         'Win Rate': (df['Goal Differential'] > 0).mean(),
         'Avg Goals Scored': df['Us Goals'].mean(),
-        'Avg Goals Conceded': -(df['Opponent Goals'].mean()),
+        'Avg Goals Conceded': df['Opponent Goals'].mean(),
         'Goal Differential': df['Goal Differential'].mean(),
         'Clean Sheets': (df['Opponent Goals'] == 0).mean(),
-        'Comeback Rate': ((df['Opponent Goals'] > df['Us Goals']) & (df['Goal Differential'] > 0)).mean()
+        'Comeback Rate': (
+            (df['Opponent Goals'] > df['Us Goals']) & (df['Goal Differential'] > 0)
+        ).mean()
     }
     values = list(team_stats.values())
-    colors = ['red' if v < 0 else 'blue' for v in values]
-    
-    fig = go.Figure(
-        go.Scatterpolar(
-            r=values,
-            theta=list(team_stats.keys()),
-            fill='toself',
-            marker=dict(color=colors, size=10)
-        )
-    )
-    fig.update_layout(
-        title="Team Performance Metrics",
-        polar=dict(radialaxis=dict(visible=True)),
-        showlegend=False
-    )
+    categories = list(team_stats.keys())
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=categories,
+        y=values,
+        marker_color=px.colors.sequential.Tealgrn,
+        text=[f"{v:.2f}" for v in values],
+        textposition='auto'
+    ))
+    fig.update_layout(title="Team Performance Metrics", xaxis_title="Metrics", yaxis_title="Values")
     st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
-    **Color Coding:**
-    - 🟦 **Blue**: Positive Values
-    - 🟥 **Red**: Negative Values
-    """)
 
 # Player Analysis Tab (Tab 3)
 with tabs[2]:
     st.header("Player Performance Analysis")
-    
-    # Existing Synergy Metrics
-    player_combinations = [
-        ('Nolan', 'Andrew'),
-        ('Nolan', 'Morgan'),
-        ('Andrew', 'Morgan'),
-        ('Nolan', 'Andrew', 'Morgan')
-    ]
-    synergy_data = []
-    for combo in player_combinations:
-        goal_cols = [f"{player} Goal" for player in combo]
-        condition = df[goal_cols].sum(axis=1) > 0
-        synergy_data.append({
-            'Combination': ' & '.join(combo),
-            'Avg Goal Diff': df[condition]['Goal Differential'].mean(),
-            'Avg Goals Scored': df[condition]['Us Goals'].mean(),
-            'Win Rate': (df[condition]['Goal Differential'] > 0).mean()
-        })
-    synergy_df = pd.DataFrame(synergy_data).set_index('Combination')
-    
-    st.subheader("Synergy Metrics")
+
+    # Synergy Metrics Heatmap
+    from itertools import product
+
+    players = ['Nolan', 'Andrew', 'Morgan']
+    synergy_matrix = pd.DataFrame(index=players, columns=players, dtype=float)
+
+    for player1, player2 in product(players, repeat=2):
+        # Condition where both players score
+        condition = (df[f'{player1} Goal'] > 0) & (df[f'{player2} Goal'] > 0)
+        if condition.any():
+            avg_goal_diff = df.loc[condition, 'Goal Differential'].mean()
+            synergy_matrix.loc[player1, player2] = avg_goal_diff
+        else:
+            synergy_matrix.loc[player1, player2] = np.nan  # Or set to 0
+
+    st.subheader("Synergy Metrics Heatmap")
     fig_synergy = px.imshow(
-        synergy_df,
+        synergy_matrix,
         text_auto=True,
         aspect="auto",
-        color_continuous_scale="RdYlGn",
-        title="Synergy Metrics"
+        color_continuous_scale="Blues",
+        title="Player Synergy Heatmap (Avg Goal Differential when both players score)"
     )
     st.plotly_chart(fig_synergy, use_container_width=True)
-    
+
     # Individual Player Statistics
     st.subheader("Individual Player Statistics")
-    
-    players = ['Nolan', 'Andrew', 'Morgan']
+
     player_stats = pd.DataFrame({
         'Player': players,
         'Total Goals': [df[f'{player} Goal'].sum() for player in players],
         'Average Goals per Game': [df[f'{player} Goal'].mean() for player in players],
         'Highest Goals in a Single Game': [df[f'{player} Goal'].max() for player in players]
     })
-    
+
     # Display individual player stats in a table
     st.table(player_stats.style.format({
         'Average Goals per Game': "{:.2f}",
         'Total Goals': "{:.0f}",
         'Highest Goals in a Single Game': "{:.0f}"
     }))
-    
+
     # Visualization of Individual Player Statistics
     st.subheader("Visual Representation of Player Statistics")
-    
+
     # Total Goals Bar Chart
     fig_total_goals = px.bar(
         player_stats,
@@ -306,12 +305,12 @@ with tabs[2]:
         title='Total Goals per Player',
         text='Total Goals',
         color='Player',
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Dark2
     )
     fig_total_goals.update_traces(textposition='outside')
     fig_total_goals.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
     st.plotly_chart(fig_total_goals, use_container_width=True)
-    
+
     # Average Goals per Game Bar Chart
     fig_avg_goals = px.bar(
         player_stats,
@@ -320,12 +319,12 @@ with tabs[2]:
         title='Average Goals per Game per Player',
         text='Average Goals per Game',
         color='Player',
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Dark2
     )
     fig_avg_goals.update_traces(textposition='outside')
     fig_avg_goals.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
     st.plotly_chart(fig_avg_goals, use_container_width=True)
-    
+
     # Highest Goals in a Single Game Bar Chart
     fig_highest_goals = px.bar(
         player_stats,
@@ -334,7 +333,7 @@ with tabs[2]:
         title='Highest Goals in a Single Game per Player',
         text='Highest Goals in a Single Game',
         color='Player',
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Dark2
     )
     fig_highest_goals.update_traces(textposition='outside')
     fig_highest_goals.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
@@ -348,56 +347,61 @@ with tabs[3]:
         'Us Goals': 'mean',
         'Opponent Goals': 'mean'
     }).reset_index()
-    
+
     # Ensure '# Opponent Players' is integer
     avg_performance['# Opponent Players'] = avg_performance['# Opponent Players'].astype(int)
-    
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(
-        go.Bar(
-            x=avg_performance['# Opponent Players'],
-            y=avg_performance['Goal Differential'],
-            name="Avg Goal Differential",
-            marker_color='indianred'
-        ),
-        secondary_y=False
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=avg_performance['# Opponent Players'],
-            y=avg_performance['Us Goals'],
-            name="Avg Goals Scored",
-            mode="lines+markers",
-            marker=dict(color='green')
-        ),
-        secondary_y=True
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=avg_performance['# Opponent Players'],
-            y=avg_performance['Opponent Goals'],
-            name="Avg Goals Conceded",
-            mode="lines+markers",
-            marker=dict(color='blue')
-        ),
-        secondary_y=True
-    )
-    fig.update_layout(title="Opponent Performance Metrics")
-    fig.update_xaxes(tickmode='linear', tick0=1, dtick=1)
-    fig.update_yaxes(title_text="Goal Differential", secondary_y=False)
-    fig.update_yaxes(title_text="Goals", secondary_y=True)
-    st.plotly_chart(fig, use_container_width=True)
+
+    if not avg_performance.empty:
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(
+            go.Bar(
+                x=avg_performance['# Opponent Players'],
+                y=avg_performance['Goal Differential'],
+                name="Avg Goal Differential",
+                marker_color='indianred'
+            ),
+            secondary_y=False
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=avg_performance['# Opponent Players'],
+                y=avg_performance['Us Goals'],
+                name="Avg Goals Scored",
+                mode="lines+markers",
+                marker=dict(color='green')
+            ),
+            secondary_y=True
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=avg_performance['# Opponent Players'],
+                y=avg_performance['Opponent Goals'],
+                name="Avg Goals Conceded",
+                mode="lines+markers",
+                marker=dict(color='blue')
+            ),
+            secondary_y=True
+        )
+        fig.update_layout(title="Opponent Performance Metrics")
+        fig.update_xaxes(title_text="Number of Opponent Players", tickmode='linear', tick0=1, dtick=1)
+        fig.update_yaxes(title_text="Goal Differential", secondary_y=False)
+        fig.update_yaxes(title_text="Goals", secondary_y=True)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No data available for opponent analysis.")
 
 # Game Breakdown Tab (Tab 5)
 with tabs[4]:
     st.header("Game-by-Game Breakdown")
-    
+
     # Scatter Plot Using SequentialIndex with Enhanced Coloring
     scatter = px.scatter(
         df,
         x='SequentialIndex',
         y='Goal Differential',
-        color=df['Goal Differential'].apply(lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Forfeit')),
+        color=df['Goal Differential'].apply(
+            lambda x: 'Win' if x > 0 else ('Loss' if x < 0 else 'Forfeit')
+        ),
         color_discrete_map={'Win': 'blue', 'Loss': 'red', 'Forfeit': 'gray'},
         hover_data={
             'SequentialIndex': False,
@@ -408,7 +412,7 @@ with tabs[4]:
         },
         title="Goal Differential Over Time"
     )
-    
+
     scatter.update_xaxes(
         title="Game Number",
         tickmode='array',
@@ -421,8 +425,12 @@ with tabs[4]:
         hovermode='closest'
     )
     st.plotly_chart(scatter, use_container_width=True)
-    
-    selected_game_idx = st.selectbox("Select a game for detailed view", df.index)
+
+    selected_game_idx = st.selectbox(
+        "Select a game for detailed view",
+        df.index,
+        format_func=lambda x: f"Game {df.loc[x, 'SequentialIndex']} on {df.loc[x, 'Date'].strftime('%Y-%m-%d')}"
+    )
     game_data = df.loc[selected_game_idx]
     st.subheader(f"Game Details: {game_data['Date'].strftime('%Y-%m-%d %H:%M')}")
     detail_cols = st.columns(3)
@@ -434,13 +442,36 @@ with tabs[4]:
     for col, (label, value) in zip(detail_cols, details):
         col.metric(label, value)
 
+# AI Insights Tab
+with tabs[5]:
+    st.header("AI-Generated Insights")
+
+    # Enhanced AI Insights
+    avg_goal_diff = df['Goal Differential'].mean()
+    top_opponent_size = df.groupby('# Opponent Players')['Goal Differential'].mean().idxmax()
+    player_impact = {
+        player: df[df[f'{player} Goal'] > 0]['Goal Differential'].mean()
+        for player in players
+    }
+    top_player = max(player_impact, key=player_impact.get)
+
+    insights = [
+        f"**Average Goal Differential**: {avg_goal_diff:.2f}. {'Focus on improving defensive strategies.' if avg_goal_diff < 0 else 'Keep up the good offensive work!'}",
+        f"**Best Performance Against Teams with {top_opponent_size} Players**. Consider strategies that work well in these matchups.",
+        f"**Top Performer**: {top_player} has the highest impact on goal differential when scoring. Creating more opportunities for them could improve overall performance.",
+        f"**Close Games Analysis**: You have played {len(df[(df['Goal Differential'] >= -1) & (df['Goal Differential'] <= 1)])} close games. Analyzing these could provide insights into clutch performance."
+    ]
+
+    for insight in insights:
+        st.info(insight)
+
 # Predictions Tab (Tab 6)
 with tabs[6]:
     st.header("Predictions and What-If Scenarios")
-    
+
     # Ensure the DataFrame has these columns
     feature_cols = ['Us # Players', '# Opponent Players', 'Nolan Goal', 'Andrew Goal', 'Morgan Goal']
-    
+
     # Ensure required columns are present
     missing_columns = [col for col in feature_cols + ['Goal Differential'] if col not in df.columns]
     if missing_columns:
@@ -453,13 +484,13 @@ with tabs[6]:
             # Prepare the data for predictions
             X = df[feature_cols]
             y = df['Goal Differential']
-            
+
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
-            
+
             model = RandomForestRegressor(n_estimators=100, random_state=42)
             model.fit(X_scaled, y)
-            
+
             st.subheader("Input Scenario")
             input_cols = st.columns(2)
             inputs = {
@@ -469,11 +500,11 @@ with tabs[6]:
                 "Andrew Goal": input_cols[1].number_input("Andrew's Goals", 0, 10, 1),
                 "Morgan Goal": input_cols[1].number_input("Morgan's Goals", 0, 10, 1)
             }
-            
+
             input_data = np.array([[inputs[col] for col in feature_cols]])
             input_scaled = scaler.transform(input_data)
             prediction = model.predict(input_scaled)[0]
-            
+
             st.metric("Predicted Goal Differential", f"{prediction:.2f}")
             if prediction > 0:
                 st.success(f"Expected to win by approximately {prediction:.2f} goals!")
@@ -481,14 +512,14 @@ with tabs[6]:
                 st.error(f"Expected to lose by approximately {abs(prediction):.2f} goals.")
             else:
                 st.info("This scenario predicts a closely matched game that could end in a tie.")
-        
+
             # Feature Importance
             st.subheader("Feature Importance")
             feature_importance = pd.DataFrame({
                 'Feature': feature_cols,
                 'Importance': model.feature_importances_
             }).sort_values('Importance', ascending=False)
-            
+
             fig = px.bar(
                 feature_importance,
                 x='Feature',
