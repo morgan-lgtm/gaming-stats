@@ -71,7 +71,7 @@ st.markdown(
     f"""
     <style>
     .stApp {{
-        background-image: url("https://wallpaper.forfun.com/fetch/a0/a0ea75234a68e572b477b0600fe64a52.jpeg");
+        background-image: url("https://wallpapers.com/images/hd/n-h-l-logoon-dark-wood-texture-52oks3apn5xbkjsa.jpg");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
