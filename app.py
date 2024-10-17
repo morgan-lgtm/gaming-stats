@@ -48,6 +48,10 @@ def load_data():
     df['GameCount'] = df.groupby('Date').cumcount()
     df['DateTime'] = df['Date'] + pd.to_timedelta(df['GameCount'] * 5, unit='m')
 
+    # Convert 'First Game of Night' and 'Last Game of Night' to integer if they are not
+    df['First Game of Night'] = df['First Game of Night'].astype(int)
+    df['Last Game of Night'] = df['Last Game of Night'].astype(int)
+
     # Handle Missing Values
     df_cleaned = df.dropna(subset=['Goal Differential', 'Us Goals', 'Opponent Goals', 'Win / Loss'])
 
@@ -202,25 +206,6 @@ with tabs[0]:
     )
     st.plotly_chart(fig_goal_diff, use_container_width=True)
 
-    # Game Highlights
-    st.subheader("Game Highlights")
-    best_game = df.loc[df['Goal Differential'].idxmax()]
-    worst_game = df.loc[df['Goal Differential'].idxmin()]
-
-    highlight_cols = st.columns(2)
-    with highlight_cols[0]:
-        st.markdown("### Best Game")
-        st.metric(
-            label=f"Game on {best_game['Date'].strftime('%Y-%m-%d')}",
-            value=f"Goal Differential: {best_game['Goal Differential']}"
-        )
-    with highlight_cols[1]:
-        st.markdown("### Worst Game")
-        st.metric(
-            label=f"Game on {worst_game['Date'].strftime('%Y-%m-%d')}",
-            value=f"Goal Differential: {worst_game['Goal Differential']}"
-        )
-
 # Team Analysis Tab (Tab 2)
 with tabs[1]:
     st.header("Team Performance Analysis")
@@ -247,6 +232,32 @@ with tabs[1]:
     ))
     fig.update_layout(title="Team Performance Metrics", xaxis_title="Metrics", yaxis_title="Values")
     st.plotly_chart(fig, use_container_width=True)
+
+    # Analyze Performance in First and Last Games of the Night
+    st.subheader("Performance in First and Last Games of the Night")
+
+    # Calculate average goal differential in first games, last games, and other games
+    first_game_avg = df[df['First Game of Night'] == 1]['Goal Differential'].mean()
+    last_game_avg = df[df['Last Game of Night'] == 1]['Goal Differential'].mean()
+    middle_games_avg = df[(df['First Game of Night'] == 0) & (df['Last Game of Night'] == 0)]['Goal Differential'].mean()
+
+    game_type = ['First Game', 'Middle Game', 'Last Game']
+    avg_goal_diff = [first_game_avg, middle_games_avg, last_game_avg]
+
+    fig_game_type = px.bar(
+        x=game_type,
+        y=avg_goal_diff,
+        title="Average Goal Differential by Game Position",
+        labels={'x': 'Game Position', 'y': 'Average Goal Differential'},
+        color=game_type,
+        color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    st.plotly_chart(fig_game_type, use_container_width=True)
+
+    st.markdown("""
+    **Insights:**
+    - Analyze if there's a significant difference in performance during the first, middle, or last games of the night.
+    """)
 
 # Player Analysis Tab (Tab 3)
 with tabs[2]:
@@ -455,11 +466,16 @@ with tabs[5]:
     }
     top_player = max(player_impact, key=player_impact.get)
 
+    # Analyze performance in first and last games
+    first_game_performance = df[df['First Game of Night'] == 1]['Goal Differential'].mean()
+    last_game_performance = df[df['Last Game of Night'] == 1]['Goal Differential'].mean()
+
     insights = [
         f"**Average Goal Differential**: {avg_goal_diff:.2f}. {'Focus on improving defensive strategies.' if avg_goal_diff < 0 else 'Keep up the good offensive work!'}",
         f"**Best Performance Against Teams with {top_opponent_size} Players**. Consider strategies that work well in these matchups.",
         f"**Top Performer**: {top_player} has the highest impact on goal differential when scoring. Creating more opportunities for them could improve overall performance.",
-        f"**Close Games Analysis**: You have played {len(df[(df['Goal Differential'] >= -1) & (df['Goal Differential'] <= 1)])} close games. Analyzing these could provide insights into clutch performance."
+        f"**First Game Performance**: Average goal differential in first games is {first_game_performance:.2f}. {'A strong start sets the tone for the night!' if first_game_performance > 0 else 'Consider warming up before the first game to improve performance.'}",
+        f"**Last Game Performance**: Average goal differential in last games is {last_game_performance:.2f}. {'Finishing strong!' if last_game_performance > 0 else 'Fatigue might be affecting the last game; consider strategies to maintain performance.'}"
     ]
 
     for insight in insights:
@@ -470,7 +486,15 @@ with tabs[6]:
     st.header("Predictions and What-If Scenarios")
 
     # Ensure the DataFrame has these columns
-    feature_cols = ['Us # Players', '# Opponent Players', 'Nolan Goal', 'Andrew Goal', 'Morgan Goal']
+    feature_cols = [
+        'Us # Players',
+        '# Opponent Players',
+        'Nolan Goal',
+        'Andrew Goal',
+        'Morgan Goal',
+        'First Game of Night',
+        'Last Game of Night'
+    ]
 
     # Ensure required columns are present
     missing_columns = [col for col in feature_cols + ['Goal Differential'] if col not in df.columns]
@@ -492,14 +516,20 @@ with tabs[6]:
             model.fit(X_scaled, y)
 
             st.subheader("Input Scenario")
-            input_cols = st.columns(2)
+            input_cols = st.columns(3)
             inputs = {
                 "Us # Players": input_cols[0].number_input("Our Team Size", 1, 5, 3),
                 "# Opponent Players": input_cols[0].number_input("Opponent Team Size", 1, 5, 3),
+                "First Game of Night": input_cols[0].checkbox("Is this the First Game of the Night?", value=False),
+                "Last Game of Night": input_cols[0].checkbox("Is this the Last Game of the Night?", value=False),
                 "Nolan Goal": input_cols[1].number_input("Nolan's Goals", 0, 10, 1),
                 "Andrew Goal": input_cols[1].number_input("Andrew's Goals", 0, 10, 1),
                 "Morgan Goal": input_cols[1].number_input("Morgan's Goals", 0, 10, 1)
             }
+
+            # Convert boolean inputs to integers (True -> 1, False -> 0)
+            inputs["First Game of Night"] = int(inputs["First Game of Night"])
+            inputs["Last Game of Night"] = int(inputs["Last Game of Night"])
 
             input_data = np.array([[inputs[col] for col in feature_cols]])
             input_scaled = scaler.transform(input_data)
