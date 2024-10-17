@@ -65,7 +65,7 @@ if df.empty:
     st.stop()
 
 # Main Dashboard with Tabs
-st.title("🏒 NHL Gaming Analytics Dashboard")
+st.title("🏒 NHL 25 Gaming Stats")
 
 st.markdown(
     f"""
