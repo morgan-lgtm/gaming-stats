@@ -67,6 +67,21 @@ if df.empty:
 # Main Dashboard with Tabs
 st.title("🏒 NHL Gaming Analytics Dashboard")
 
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("https://wallpaper.forfun.com/fetch/a0/a0ea75234a68e572b477b0600fe64a52.jpeg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 tabs = st.tabs([
     "Dashboard",
     "Team Analysis",
