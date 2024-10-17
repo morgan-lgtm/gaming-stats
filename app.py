@@ -71,7 +71,7 @@ st.markdown(
     f"""
     <style>
     .stApp {{
-        background-image: url("https://wallpapers.com/images/hd/n-h-l-logoon-dark-wood-texture-52oks3apn5xbkjsa.jpg");
+        background-image: url("https://images6.alphacoders.com/982/thumb-1920-982416.jpg");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
