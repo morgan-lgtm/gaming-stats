@@ -545,8 +545,8 @@ with tabs[2]:
         'Average Goals per Game': [df[f'{player} Goal'].mean() for player in players],
         'Highest Goals in a Single Game': [df[f'{player} Goal'].max() for player in players],
         # Assuming equal contribution for hits and penalties
-        'Average Hits per Game': df['Us Hits'].mean() / len(players),
-        'Average Penalty Minutes per Game': df['Us Penalty Minutes'].mean() / len(players)
+        #'Average Hits per Game': df['Us Hits'].mean() / len(players),
+        #'Average Penalty Minutes per Game': df['Us Penalty Minutes'].mean() / len(players)
     })
 
     # Display individual player stats in a table
@@ -554,8 +554,8 @@ with tabs[2]:
         'Average Goals per Game': "{:.2f}",
         'Total Goals': "{:.0f}",
         'Highest Goals in a Single Game': "{:.0f}",
-        'Average Hits per Game': "{:.2f}",
-        'Average Penalty Minutes per Game': "{:.2f}"
+       # 'Average Hits per Game': "{:.2f}",
+       # 'Average Penalty Minutes per Game': "{:.2f}"
     }))
 
     # Visualization of Individual Player Statistics
@@ -575,19 +575,19 @@ with tabs[2]:
     fig_total_goals.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
     st.plotly_chart(fig_total_goals, use_container_width=True)
 
-    # Average Hits per Game
-    fig_hits = px.bar(
-        player_stats,
-        x='Player',
-        y='Average Hits per Game',
-        title='Average Hits per Game per Player',
-        text='Average Hits per Game',
-        color='Player',
-        color_discrete_sequence=px.colors.qualitative.Dark2
-    )
-    fig_hits.update_traces(textposition='outside')
-    fig_hits.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
-    st.plotly_chart(fig_hits, use_container_width=True)
+    # # Average Hits per Game
+    # fig_hits = px.bar(
+    #     player_stats,
+    #     x='Player',
+    #     y='Average Hits per Game',
+    #     title='Average Hits per Game per Player',
+    #     text='Average Hits per Game',
+    #     color='Player',
+    #     color_discrete_sequence=px.colors.qualitative.Dark2
+    # )
+    # fig_hits.update_traces(textposition='outside')
+    # fig_hits.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
+    # st.plotly_chart(fig_hits, use_container_width=True)
 
 # Opponent Analysis Tab (Tab 4)
 with tabs[3]:
