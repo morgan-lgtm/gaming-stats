@@ -11,7 +11,7 @@ import os  # Import os for environment variables
 
 # Set page configuration
 st.set_page_config(
-    page_title="NHL Gaming Stats Dashboard V3",
+    page_title="NHL Gaming Stats Dashboard",
     page_icon="🏒",
     layout="wide"
 )
