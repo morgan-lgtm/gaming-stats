@@ -186,7 +186,10 @@ with tabs[0]:
         streak = 0
         streak_type = None
 
-        for diff in reversed(df[df['Win / Loss'] != 'Quit']['Goal Differential']):
+        # Reverse the Series using .iloc[::-1]
+        goal_diff_series = df[df['Win / Loss'] != 'Quit']['Goal Differential'].iloc[::-1]
+
+        for diff in goal_diff_series:
             if diff > 0:
                 if streak_type is None or streak_type == 'win':
                     streak_type = 'win'
@@ -214,29 +217,6 @@ with tabs[0]:
     ]
     for col, (label, value) in zip(cols, metrics):
         col.metric(label, value)
-
-    # Pie Chart for Faceoff Win Percentage
-    st.subheader("Faceoff Win Percentage")
-    total_faceoffs = df['Us Faceoffs Won'].sum() + df['Opponent Faceoffs Won'].sum()
-    if total_faceoffs > 0:
-        us_faceoffs = df['Us Faceoffs Won'].sum()
-        opponent_faceoffs = df['Opponent Faceoffs Won'].sum()
-        faceoff_data = pd.DataFrame({
-            'Team': ['Us', 'Opponent'],
-            'Faceoffs Won': [us_faceoffs, opponent_faceoffs]
-        })
-        fig_faceoff_pie = px.pie(
-            faceoff_data,
-            names='Team',
-            values='Faceoffs Won',
-            title='Faceoff Win Distribution',
-            color='Team',
-            color_discrete_map={'Us': 'blue', 'Opponent': 'red'},
-            hole=0.4  # Donut chart
-        )
-        st.plotly_chart(fig_faceoff_pie, use_container_width=True)
-    else:
-        st.info("No faceoff data available.")
 
     # Pie Chart for Wins, Losses, and Forfeits
     st.subheader("Game Results Distribution")
@@ -291,6 +271,29 @@ with tabs[0]:
         hovermode='x unified'
     )
     st.plotly_chart(fig_goal_diff, use_container_width=True)
+
+    # Pie Chart for Faceoff Win Percentage
+    st.subheader("Faceoff Win Percentage")
+    total_faceoffs = df['Us Faceoffs Won'].sum() + df['Opponent Faceoffs Won'].sum()
+    if total_faceoffs > 0:
+        us_faceoffs = df['Us Faceoffs Won'].sum()
+        opponent_faceoffs = df['Opponent Faceoffs Won'].sum()
+        faceoff_data = pd.DataFrame({
+            'Team': ['Us', 'Opponent'],
+            'Faceoffs Won': [us_faceoffs, opponent_faceoffs]
+        })
+        fig_faceoff_pie = px.pie(
+            faceoff_data,
+            names='Team',
+            values='Faceoffs Won',
+            title='Faceoff Win Distribution',
+            color='Team',
+            color_discrete_map={'Us': 'blue', 'Opponent': 'red'},
+            hole=0.4  # Donut chart
+        )
+        st.plotly_chart(fig_faceoff_pie, use_container_width=True)
+    else:
+        st.info("No faceoff data available.")
 
 # Team Analysis Tab (Tab 2)
 with tabs[1]:
