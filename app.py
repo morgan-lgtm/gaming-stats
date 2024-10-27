@@ -48,9 +48,9 @@ def load_data():
     df['GameCount'] = df.groupby('Date').cumcount()
     df['DateTime'] = df['Date'] + pd.to_timedelta(df['GameCount'] * 5, unit='m')
 
-    # Convert 'First Game of Night' and 'Last Game of Night' to integer if they are not
-    df['First Game of Night'] = df['First Game of Night'].astype(int)
-    df['Last Game of Night'] = df['Last Game of Night'].astype(int)
+    # Fill NA values with 0 before converting to integer
+    df['First Game of Night'] = df['First Game of Night'].fillna(0).astype(int)
+    df['Last Game of Night'] = df['Last Game of Night'].fillna(0).astype(int)
 
     # Handle Missing Values in new columns
     new_columns = [
