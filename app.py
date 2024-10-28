@@ -233,7 +233,7 @@ if not df.empty:
             fig = make_subplots(
                 rows=1, cols=2,
                 specs=[[{'type': 'indicator'}, {'type': 'indicator'}]],
-                subplot_titles=("Shot Efficiency", "Win Probability")
+                subplot_titles=("", "")
             )
             
             fig.add_trace(
