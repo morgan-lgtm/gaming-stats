@@ -1,17 +1,20 @@
-Date,Us # Players,# Opponent Players,Us Goals,Opponent Goals,Nolan Goal,Andrew Goal,Morgan Goal,Win / Loss,First Game of Night,Last Game of Night,Opponent Total Shots,Us Total Shots,Opponent Hits,Us Hits,Opponent TOA,Us TOA,Opponent Passing Rate,Us Passing Rate,Opponent Faceoffs Won,Us Faceoffs Won,Opponent Penalty Minutes,Us Penalty Minutes,Opponent Power Play Minutes,Us Power Play Minutes,Opponent Shorthanded Goals,Us Shorthanded Goals,Nolan Fight Won,Andrew Fight Won,Morgan Fight Won
-10/11/24,3,1,4,5,2,2,0,Loss,1,0,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,,,
-10/11/24,3,1,2,7,0,1,1,Loss,0,0,29,11,17,25,11.04,3.21,76.7,57.6,23,7,4,14,6.38,1.55,0,0,,,
-10/11/24,3,2,1,5,0,0,1,Loss,0,0,31,12,19,27,12.44,2.24,66.7,50.8,15,18,17,33,11.38,1.05,0,0,,,
-10/11/24,3,1,2,10,0,2,0,Quit,0,1,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,,,
-10/18/24,3,2,0,8,0,0,0,Loss,1,0,44,13,18,20,11.44,3.15,70.8,52.5,12,12,6,10,5.09,3.33,0,0,,Yes,Yes
-10/18/24,3,2,1,4,1,0,0,Loss,0,0,32,25,22,11,13.29,2.57,72.6,54,24,5,12,24,10.02,0.58,0,0,,,
-10/18/24,3,2,1,9,0,0,1,Loss,0,0,42,22,22,15,13.22,3.12,65.3,54.1,21,18,0,16,7.28,0,0,1,,,
-10/18/24,3,1,2,7,2,0,0,Loss,0,1,68,17,38,24,12.4,3.05,79.8,67.2,13,27,21,41,17.06,3.17,0,1,,,
-10/26/24,3,2,0,5,0,0,0,Loss,1,0,29,19,25,15,9.04,4.3,71.6,38.3,20,18,2,6,4.1,1.04,0,0,,,
-10/26/24,3,1,1,4,0,1,0,Loss,0,0,30,15,11,22,11.31,2.22,79.6,54.7,20,7,5,19,12.22,0,0,1,,,
-10/26/24,3,1,0,9,0,0,0,Loss,0,0,35,17,22,19,13.38,2.25,68.8,56.1,30,4,17,23,6.12,5.44,3,0,,,
-10/26/24,3,2,5,2,2,2,1,Win,0,1,23,25,10,11,10.53,4.37,60.5,70.1,17,17,6,12,9.27,4.2,0,0,,,
-11/1/24,3,2,1,5,1,1,0,Loss,0,0,23,10,33,5,6.1,1.25,79.2,58.5,22,5,2,4,2.1,1.31,0,0,,,
-11/1/24,3,2,4,2,1,1,0,Loss,0,1,40,16,16,13,16.31,2.2,68.4,58,25,6,0,4,3.17,0,0,0,,,
-11/8/24,3,1,0,7,0,0,0,Loss,1,0,40,17,18,26,13.38,3.3,80.6,56.3,18,15,7,27,13.5,1.4,0,0,,,
-11/8/24,3,2,1,6,0,1,0,Loss,0,1,31,12,8,14,13.38,2.49,75.2,57.4,18,16,2,12,7.21,2,0,1,,,
+Date,Us # Players,# Opponent Players,Us Goals,Opponent Goals,Nolan Goal,Andrew Goal,Morgan Goal,Win / Loss,First Game of Night,Last Game of Night,Opponent Total Shots,Us Total Shots,Opponent Hits,Us Hits,Opponent TOA,Us TOA,Opponent Passing Rate,Us Passing Rate,Opponent Faceoffs Won,Us Faceoffs Won,Opponent Penalty Minutes,Us Penalty Minutes,Opponent Power Play Minutes,Us Power Play Minutes,Opponent Shorthanded Goals,Us Shorthanded Goals
+10/11/24,3,1,4,5,2,2,0,Loss,1,0,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing
+10/11/24,3,1,2,7,0,1,1,Loss,0,0,29,11,17,25,11.04,3.21,76.7,57.6,23,7,4,14,6.38,1.55,0,0
+10/11/24,3,2,1,5,0,0,1,Loss,0,0,31,12,19,27,12.44,2.24,66.7,50.8,15,18,17,33,11.38,1.05,0,0
+10/11/24,3,1,2,10,0,2,0,Quit,0,1,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing,Missing
+10/18/24,3,2,0,8,0,0,0,Loss,1,0,44,13,18,20,11.44,3.15,70.8,52.5,12,12,6,10,5.09,3.33,0,0
+10/18/24,3,2,1,4,1,0,0,Loss,0,0,32,25,22,11,13.29,2.57,72.6,54,24,5,12,24,10.02,0.58,0,0
+10/18/24,3,2,1,9,0,0,1,Loss,0,0,42,22,22,15,13.22,3.12,65.3,54.1,21,18,0,16,7.28,0,0,1
+10/18/24,3,1,2,7,2,0,0,Loss,0,1,68,17,38,24,12.4,3.05,79.8,67.2,13,27,21,41,17.06,3.17,0,1
+10/26/24,3,2,0,5,0,0,0,Loss,1,0,29,19,25,15,9.04,4.3,71.6,38.3,20,18,2,6,4.1,1.04,0,0
+10/26/24,3,1,1,4,0,1,0,Loss,0,0,30,15,11,22,11.31,2.22,79.6,54.7,20,7,5,19,12.22,0,0,1
+10/26/24,3,1,0,9,0,0,0,Loss,0,0,35,17,22,19,13.38,2.25,68.8,56.1,30,4,17,23,6.12,5.44,3,0
+10/26/24,3,2,5,2,2,2,1,Win,0,1,23,25,10,11,10.53,4.37,60.5,70.1,17,17,6,12,9.27,4.2,0,0
+11/1/24,3,2,1,5,1,1,0,Loss,0,0,23,10,33,5,6.1,1.25,79.2,58.5,22,5,2,4,2.1,1.31,0,0
+11/1/24,3,2,4,2,1,1,0,Loss,0,1,40,16,16,13,16.31,2.2,68.4,58,25,6,0,4,3.17,0,0,0
+11/8/24,3,1,0,7,0,0,0,Loss,1,0,40,17,18,26,13.38,3.3,80.6,56.3,18,15,7,27,13.5,1.4,0,0
+11/8/24,3,2,1,6,0,1,0,Loss,0,1,31,12,8,14,13.38,2.49,75.2,57.4,18,16,2,12,7.21,2,0,1
+11/16/24,3,3,0,6,0,0,0,Loss,1,0,30,15,13,11,8.57,3.41,73.6,66.2,11,18,2,8,2.22,0.39,0,0
+11/16/24,3,3,0,7,0,0,0,Loss,0,0,52,19,9,9,12.16,3.01,79.6,60.9,29,14,2,14,10.44,0.25,0,0
+11/16/24,3,2,0,9,0,0,0,Loss,0,1,49,27,14,26,7.33,4.34,70.6,64.3,35,10,25,33,10.02,5.45,1,0
