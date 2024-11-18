@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # Page Config
 st.set_page_config(page_title="NHL Gaming Hub", page_icon="🏒", layout="wide")
 
-# Enhanced CSS
+# Enhanced CSS for mobile-friendly layout
 st.markdown("""
     <style>
     .stApp {
@@ -27,12 +27,32 @@ st.markdown("""
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 15px;
-        padding: 20px;
+        padding: 15px;
         margin: 10px 0;
         color: white;
     }
     .trend-up { color: #2ecc71; }
     .trend-down { color: #e74c3c; }
+
+    /* Mobile-friendly adjustments */
+    @media only screen and (max-width: 768px) {
+        .streak-container, .record-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .streak-card, .record-card {
+            margin-bottom: 10px;
+        }
+        .streak-value {
+            font-size: 20px;
+        }
+        .stat-card h3 {
+            font-size: 18px;
+        }
+        .stat-card div {
+            font-size: 16px;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -242,15 +262,18 @@ def main():
         <style>
         .record-container {{
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            gap: 40px;
+            gap: 20px;
             margin-bottom: 20px;
         }}
         .record-card {{
+            flex: 1;
+            min-width: 140px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
-            padding: 20px 30px;
+            padding: 15px;
             text-align: center;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -274,21 +297,23 @@ def main():
         <style>
         .streak-container {{
             display: flex;
-            gap: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-bottom: 20px;
         }}
         .streak-card {{
             flex: 1;
+            min-width: 140px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
         }}
         .streak-value {{
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             margin: 10px 0;
         }}
@@ -341,7 +366,7 @@ def main():
             'Time on Attack': {'metric': 'Us TOA', 'suffix': ' min', 'multiply': 1}
         }
 
-        cols = st.columns(len(kpi_metrics))
+        cols = st.columns(1) if st.sidebar.checkbox("Show KPIs Vertically", False) else st.columns(len(kpi_metrics))
         recent_days = daily_metrics.tail(5)
         previous_days = daily_metrics.iloc[-10:-5]
 
@@ -377,7 +402,7 @@ def main():
         st.plotly_chart(create_special_teams_analysis(daily_metrics), use_container_width=True)
 
         # Additional special teams metrics
-        cols = st.columns(3)
+        cols = st.columns(1) if st.sidebar.checkbox("Show Metrics Vertically", False) else st.columns(3)
         with cols[0]:
             pp_efficiency = daily_metrics['Power Play Efficiency'].mean()
             st.markdown(f"""
@@ -470,7 +495,7 @@ def main():
         )
 
         # Player's recent performance
-        cols = st.columns(3)
+        cols = st.columns(1) if st.sidebar.checkbox("Show Player Metrics Vertically", False) else st.columns(3)
 
         recent_days = daily_metrics.tail(5)
         previous_days = daily_metrics.iloc[-10:-5]
