@@ -1,0 +1,21 @@
+features:
+  - Us TOA
+  - Us Passing Rate
+  - Us Penalty Minutes
+  - Us Hits
+  - Us Faceoffs Won
+  - Us Power Play Minutes
+  - Shot Efficiency
+  - Power Play Efficiency
+ # - Us Goals
+  - Num Opponent Players
+ # - Opponent Goals
+  - Opponent Total Shots
+  - Opponent Hits
+  - Opponent TOA
+  - Opponent Passing Rate
+  - Opponent Faceoffs Won
+  - Opponent Penalty Minutes
+  - Opponent Power Play Minutes
+  - Opponent Shorthanded Goals
+  - Us Shorthanded Goals

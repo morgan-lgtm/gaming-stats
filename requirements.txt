@@ -4,3 +4,4 @@ plotly
 numpy
 boto3
 scikit-learn
+pyyaml

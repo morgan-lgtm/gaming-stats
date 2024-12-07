@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 from datetime import datetime, timedelta
+import yaml  # Ensure PyYAML is installed
 
 # Page Config
 st.set_page_config(page_title="NHL Gaming Hub", page_icon="🏒", layout="wide")
@@ -57,6 +58,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_data
+def load_model_features(yaml_path='model_features.yaml'):
+    try:
+        with open(yaml_path, 'r') as file:
+            config = yaml.safe_load(file)
+            features = config.get('features', [])
+            if not features:
+                st.warning("No features found in the YAML configuration.")
+            #st.write(features)
+            # Strip leading/trailing spaces and ensure consistent capitalization
+            features = [str(feature).strip() for feature in features]
+            return features
+    except FileNotFoundError:
+        st.error(f"YAML configuration file '{yaml_path}' not found.")
+        return []
+    except yaml.YAMLError as exc:
+        st.error(f"Error parsing YAML file: {exc}")
+        return []
+
+@st.cache_data
 def load_data():
     try:
         df = pd.read_csv('data/nhl_stats.csv')
@@ -65,10 +85,10 @@ def load_data():
 
         # All numeric columns
         numeric_cols = [
-            'Us # Players', '# Opponent Players', 'Us Goals', 'Opponent Goals',
+            'Us Num Players', 'Num Opponent Players', 'Us Goals', 'Opponent Goals',
             'Nolan Goal', 'Andrew Goal', 'Morgan Goal',
             'Us Total Shots', 'Opponent Total Shots',
-            'Us Hits', 'Opponent Hits',
+            'Us Hits', 'Opponent Hits',  # Ensure 'Opponent Hits' is included here
             'Us TOA', 'Opponent TOA',
             'Us Passing Rate', 'Opponent Passing Rate',
             'Us Faceoffs Won', 'Opponent Faceoffs Won',
@@ -117,16 +137,25 @@ def load_data():
                 games_since_goal.append(counter)
             df[f'Games_Since_{player}_Goal'] = games_since_goal
 
-        # Daily averages for metrics
+        # Load features from YAML
+        features = load_model_features('model_features.yaml')
+
+        # Ensure all features from YAML are included in metrics_to_aggregate
         metrics_to_aggregate = [
             'Us TOA', 'Us Passing Rate', 'Us Penalty Minutes',
-            'Us Hits', 'Us Faceoffs Won', 'Us Power Play Minutes',
+            'Us Hits', 'Opponent Hits',  # Added 'Opponent Hits' here
+            'Us Faceoffs Won', 'Us Power Play Minutes',
             'Shot Efficiency', 'Power Play Efficiency', 'IsWin',
             'Us Goals', 'Goal Differential', 'Nolan Goal',
             'Andrew Goal', 'Morgan Goal', 'Games_Since_Win',
             'Games_Since_Nolan_Goal', 'Games_Since_Andrew_Goal',
-            'Games_Since_Morgan_Goal', '# Opponent Players'
+            'Games_Since_Morgan_Goal', 'Num Opponent Players'
         ]
+
+        # Dynamically add features from YAML to metrics_to_aggregate if not already present
+        for feature in features:
+            if feature not in metrics_to_aggregate:
+                metrics_to_aggregate.append(feature)
 
         daily_metrics = df.groupby('Date')[metrics_to_aggregate].mean().reset_index()
 
@@ -142,12 +171,19 @@ def load_data():
         total_wins = df['IsWin'].sum()
         total_losses = len(df) - total_wins
 
+        # Calculate total goals for each player
+        total_goals = {
+            'Nolan': int(df['Nolan Goal'].sum()),
+            'Andrew': int(df['Andrew Goal'].sum()),
+            'Morgan': int(df['Morgan Goal'].sum())
+        }
+
         # Return the additional metrics
-        return daily_metrics, current_streaks, total_wins, total_losses
+        return daily_metrics, current_streaks, total_wins, total_losses, total_goals
 
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame(), {}, 0, 0
+        return pd.DataFrame(), {}, 0, 0, {}
 
 def create_metric_timeline(df, metric, title, color_scale=None):
     fig = go.Figure()
@@ -155,7 +191,7 @@ def create_metric_timeline(df, metric, title, color_scale=None):
     fig.add_trace(go.Scatter(
         x=df['Date'],
         y=df[metric],
-        name='Daily Average',
+        name='Session Average',
         line=dict(color='#2ecc71', width=3)
     ))
 
@@ -249,13 +285,77 @@ def create_special_teams_analysis(daily_metrics):
     )
     return fig
 
+def create_correlation_plot(df, features, target='Goal Differential'):
+    if not features:
+        st.warning("No features available for correlation analysis.")
+        return
+
+    # Ensure target exists in the dataframe
+    if target not in df.columns:
+        st.error(f"Target variable '{target}' not found in the data.")
+        return
+
+    # Calculate correlations
+    correlations = {}
+    for feature in features:
+        if feature in df.columns:
+            corr = df[feature].corr(df[target])
+            correlations[feature] = corr
+        else:
+            st.warning(f"Feature '{feature}' not found in the data and will be skipped.")
+
+    if not correlations:
+        st.warning("No valid features found for correlation analysis.")
+        return
+
+    # Convert to DataFrame for plotting
+    corr_df = pd.DataFrame.from_dict(correlations, orient='index', columns=['Correlation'])
+    corr_df = corr_df.dropna().sort_values('Correlation', ascending=False)
+
+    # Plotting
+    fig = px.bar(
+        corr_df,
+        x='Correlation',
+        y=corr_df.index,
+        orientation='h',
+        color='Correlation',
+        color_continuous_scale='RdYlGn',
+        title='Feature Correlation with Goal Differential',
+        labels={'Correlation': 'Correlation Coefficient', 'index': 'Features'},
+        template='plotly_dark'
+    )
+
+    fig.update_layout(
+        xaxis=dict(range=[-1, 1]),
+        yaxis=dict(automargin=True),
+        margin=dict(l=150, r=50, t=100, b=50)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
 def main():
     st.title("🏒 NHL Gaming Analytics Hub")
 
-    daily_metrics, current_streaks, total_wins, total_losses = load_data()
+    daily_metrics, current_streaks, total_wins, total_losses, total_goals = load_data()
     if daily_metrics.empty:
         st.warning("No data available.")
         return
+
+    # Add the Last Game Date Message at the Top
+    try:
+        last_game_date = daily_metrics['Date'].max().strftime('%B %d, %Y')
+        st.markdown(f"""
+            <div style="background-color: rgba(255, 255, 255, 0.1); 
+                        border-radius: 10px; 
+                        padding: 10px; 
+                        text-align: center; 
+                        color: white; 
+                        margin-bottom: 20px;">
+                <h3>Last Game Played on: {last_game_date}</h3>
+            </div>
+        """, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error displaying last game date: {e}")
 
     # Display total wins and losses
     st.markdown(f"""
@@ -284,10 +384,10 @@ def main():
         </style>
         <div class="record-container">
             <div class="record-card">
-                Total Wins: {total_wins}
+                Total Wins: {int(total_wins)}
             </div>
             <div class="record-card">
-                Total Losses: {total_losses}
+                Total Losses: {int(total_losses)}
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -353,7 +453,8 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    tabs = st.tabs(["📊 Overview", "⚡ Special Teams", "📈 Detailed Metrics", "🎮 Player Stats"])
+    # Define Tabs (Added the new tab here)
+    tabs = st.tabs(["📊 Overview", "⚡ Special Teams", "📈 Detailed Metrics", "🎮 Player Stats", "📉 Goal Difference Prediction"])
 
     with tabs[0]:
         st.header("Team Performance Overview")
@@ -366,7 +467,8 @@ def main():
             'Time on Attack': {'metric': 'Us TOA', 'suffix': ' min', 'multiply': 1}
         }
 
-        cols = st.columns(1) if st.sidebar.checkbox("Show KPIs Vertically", False) else st.columns(len(kpi_metrics))
+        show_kpis_vertically = st.sidebar.checkbox("Show KPIs Vertically", False)
+        cols = st.columns(1) if show_kpis_vertically else st.columns(len(kpi_metrics))
         recent_days = daily_metrics.tail(5)
         previous_days = daily_metrics.iloc[-10:-5]
 
@@ -397,12 +499,43 @@ def main():
             daily_metrics, 'Us Passing Rate', 'Passing Rate (%)', 'RdYlBu'
         ), use_container_width=True)
 
+        # Bar Chart for Total Goals per Player
+        st.subheader("Total Goals Scored by Each Player")
+        goals_df = pd.DataFrame({
+            'Player': list(total_goals.keys()),
+            'Total Goals': list(total_goals.values())
+        })
+
+        fig_goals = px.bar(
+            goals_df,
+            x='Player',
+            y='Total Goals',
+            color='Player',
+            color_discrete_sequence=px.colors.qualitative.Pastel,
+            title='Total Goals Scored by Each Player',
+            template='plotly_dark',
+            text='Total Goals'
+        )
+
+        fig_goals.update_traces(texttemplate='%{text}', textposition='outside')
+        fig_goals.update_layout(
+            uniformtext_minsize=8,
+            uniformtext_mode='hide',
+            yaxis=dict(title='Total Goals'),
+            xaxis=dict(title='Player'),
+            showlegend=False,
+            margin=dict(l=40, r=40, t=80, b=40)
+        )
+
+        st.plotly_chart(fig_goals, use_container_width=True)
+
     with tabs[1]:
         st.header("Special Teams Analysis")
         st.plotly_chart(create_special_teams_analysis(daily_metrics), use_container_width=True)
 
         # Additional special teams metrics
-        cols = st.columns(1) if st.sidebar.checkbox("Show Metrics Vertically", False) else st.columns(3)
+        show_metrics_vertically = st.sidebar.checkbox("Show Metrics Vertically", False)
+        cols = st.columns(1) if show_metrics_vertically else st.columns(3)
         with cols[0]:
             pp_efficiency = daily_metrics['Power Play Efficiency'].mean()
             st.markdown(f"""
@@ -451,8 +584,11 @@ def main():
             key="metrics_selector"
         )
 
-        for metric, title, colorscale in available_metrics:
-            if title in selected_metrics:
+        metric_mapping = {title: (metric, colorscale) for metric, title, colorscale in available_metrics}
+
+        for title in selected_metrics:
+            metric, colorscale = metric_mapping.get(title, (None, None))
+            if metric:
                 st.plotly_chart(
                     create_metric_timeline(daily_metrics, metric, title, colorscale),
                     use_container_width=True
@@ -464,12 +600,14 @@ def main():
         # Us TOA vs. Number of Opponent Players
         fig1 = px.scatter(
             daily_metrics,
-            x='# Opponent Players',
+            x='Num Opponent Players',
             y='Us TOA',
             color='IsWin',
             title='Us Time on Attack vs Number of Opponent Players',
-            labels={'# Opponent Players': 'Number of Opponent Players', 'Us TOA': 'Us Time on Attack'},
-            template='plotly_dark'
+            labels={'Num Opponent Players': 'Number of Opponent Players', 'Us TOA': 'Us Time on Attack'},
+            template='plotly_dark',
+            color_continuous_scale='RdYlGn',
+            hover_data=['Date']
         )
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -481,12 +619,14 @@ def main():
             color='IsWin',
             title='Us Penalty Minutes vs Us Goals',
             labels={'Us Penalty Minutes': 'Us Penalty Minutes', 'Us Goals': 'Us Goals'},
-            template='plotly_dark'
+            template='plotly_dark',
+            color_continuous_scale='RdYlGn',
+            hover_data=['Date']
         )
         st.plotly_chart(fig2, use_container_width=True)
 
     with tabs[3]:
-        st.header("Player Statistics")
+        st.header("🎮 Player Statistics")
 
         player = st.selectbox(
             "Select Player",
@@ -495,7 +635,8 @@ def main():
         )
 
         # Player's recent performance
-        cols = st.columns(1) if st.sidebar.checkbox("Show Player Metrics Vertically", False) else st.columns(3)
+        show_player_metrics_vertically = st.sidebar.checkbox("Show Player Metrics Vertically", False)
+        cols = st.columns(1) if show_player_metrics_vertically else st.columns(3)
 
         recent_days = daily_metrics.tail(5)
         previous_days = daily_metrics.iloc[-10:-5]
@@ -508,7 +649,7 @@ def main():
 
             st.markdown(f"""
                 <div class="stat-card">
-                    <h3>Goals per Game</h3>
+                    <h3>Goals per game</h3>
                     <div style="font-size: 24px; font-weight: bold;">
                         {goals:.2f} {trend}
                     </div>
@@ -540,10 +681,50 @@ def main():
                 </div>
             """, unsafe_allow_html=True)
 
+        # Display Total Goals for the Selected Player
+        st.markdown(f"""
+            <div class="stat-card">
+                <h3>Total Goals</h3>
+                <div style="font-size: 24px; font-weight: bold;">
+                    {total_goals.get(player, 0)} goals
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
         # Player's goal timeline
         st.plotly_chart(create_metric_timeline(
             daily_metrics, f'{player} Goal', f"{player}'s Goals per Game", 'RdYlGn'
         ), use_container_width=True)
+
+    with tabs[4]:
+        st.header("📉 Goal Difference Prediction")
+
+        # Load features from YAML file
+        features = load_model_features('model_features.yaml')
+
+        if features:
+
+            st.subheader("Feature Correlations with Goal Differential")
+
+            # Create the correlation plot
+            create_correlation_plot(daily_metrics, features, target='Goal Differential')
+
+            # Optional: Display correlation values as a table
+            correlations = {}
+            for feature in features:
+                if feature in daily_metrics.columns:
+                    corr = daily_metrics[feature].corr(daily_metrics['Goal Differential'])
+                    correlations[feature] = corr
+                else:
+                    st.warning(f"Feature '{feature}' not found in the data and will be skipped.")
+
+            corr_df = pd.DataFrame.from_dict(correlations, orient='index', columns=['Correlation'])
+            corr_df = corr_df.dropna().sort_values('Correlation', ascending=False)
+
+            st.subheader("Correlation Coefficients")
+            st.dataframe(corr_df.style.format({"Correlation": "{:.2f}"}))
+        else:
+            st.warning("No features available for analysis. Please check the YAML configuration.")
 
 if __name__ == "__main__":
     main()
