@@ -122,14 +122,47 @@ def load_data():
         )
         df['Goal Differential'] = df['Us Goals'] - df['Opponent Goals']
 
-        # Games since last win
-        df['Games_Since_Win'] = df['IsWin'][::-1].cumsum()[::-1] - 1
-        df['Games_Since_Win'] = df['Games_Since_Win'].astype(int)
+        # Initialize "Games Since" metrics
+        df['Games_Since_Win'] = 0
+        df['Games_Since_Nolan_Goal'] = 0
+        df['Games_Since_Andrew_Goal'] = 0
+        df['Games_Since_Morgan_Goal'] = 0
 
-        # Games since last goal for each player
-        for player in ['Nolan', 'Andrew', 'Morgan']:
-            df[f'Games_Since_{player}_Goal'] = df[f'{player} Goal'][::-1].cumsum()[::-1] - 1
-            df[f'Games_Since_{player}_Goal'] = df[f'Games_Since_{player}_Goal'].astype(int)
+        # Counters for "Games Since" metrics
+        games_since_win = 0
+        games_since_nolan = 0
+        games_since_andrew = 0
+        games_since_morgan = 0
+
+        # Iterate through the dataframe in chronological order
+        for idx, row in df.iterrows():
+            # Update Games_Since_Win
+            if row['IsWin'] == 1:
+                games_since_win = 0
+            else:
+                games_since_win += 1
+            df.at[idx, 'Games_Since_Win'] = games_since_win
+
+            # Update Games_Since_Nolan_Goal
+            if row['Nolan Goal'] > 0:
+                games_since_nolan = 0
+            else:
+                games_since_nolan += 1
+            df.at[idx, 'Games_Since_Nolan_Goal'] = games_since_nolan
+
+            # Update Games_Since_Andrew_Goal
+            if row['Andrew Goal'] > 0:
+                games_since_andrew = 0
+            else:
+                games_since_andrew += 1
+            df.at[idx, 'Games_Since_Andrew_Goal'] = games_since_andrew
+
+            # Update Games_Since_Morgan_Goal
+            if row['Morgan Goal'] > 0:
+                games_since_morgan = 0
+            else:
+                games_since_morgan += 1
+            df.at[idx, 'Games_Since_Morgan_Goal'] = games_since_morgan
 
         # Faceoff calculations
         df['Total Faceoffs'] = df['Us Faceoffs Won'] + df['Opponent Faceoffs Won']
@@ -161,13 +194,13 @@ def load_data():
         ]
 
         for feature in features:
-            if feature not in metrics_to_aggregate:
+            if feature not in metrics_to_aggregate and feature in df.columns:
                 metrics_to_aggregate.append(feature)
 
         # Aggregate metrics by Date
         daily_metrics = df.groupby('Date')[metrics_to_aggregate].mean().reset_index()
 
-        # Current streaks
+        # Current streaks (latest values)
         current_streaks = {
             'Games_Since_Win': int(df['Games_Since_Win'].iloc[-1]),
             'Games_Since_Nolan_Goal': int(df['Games_Since_Nolan_Goal'].iloc[-1]),
@@ -186,11 +219,11 @@ def load_data():
             'Morgan': int(df['Morgan Goal'].sum())
         }
 
-        return daily_metrics, current_streaks, total_wins, total_losses, total_goals
+        return daily_metrics, current_streaks, total_wins, total_losses, total_goals, df
 
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame(), {}, 0, 0, {}
+        return pd.DataFrame(), {}, 0, 0, {}, pd.DataFrame()
 
 
 def create_metric_timeline(df, metric, title, color_scale=None):
@@ -367,7 +400,7 @@ def main():
     st.title("🏒 NHL Gaming Analytics Hub")
 
     # Load Data
-    daily_metrics, current_streaks, total_wins, total_losses, total_goals = load_data()
+    daily_metrics, current_streaks, total_wins, total_losses, total_goals, full_df = load_data()
     if daily_metrics.empty:
         st.warning("No data available.")
         return
