@@ -518,7 +518,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # Tabs
-    tabs = st.tabs(["📊 Overview", "⚡ Special Teams", "📈 Detailed Metrics", "🎮 Player Stats", "📉 Goal Difference Prediction"])
+    tabs = st.tabs(["📊 Overview", "⚡ Special Teams", "📈 Detailed Metrics", "🎮 Player Stats", "📉 Goal Difference Prediction", "🔗 Correlation Explorer"])
 
     with tabs[0]:
         st.header("Team Performance Overview")
@@ -796,6 +796,44 @@ def main():
                 st.warning("No statistically significant correlations to display.")
         else:
             st.warning("No features available for analysis. Please check the YAML configuration.")
+
+    with tabs[5]:
+        st.header("🔗 Correlation Explorer")
+
+        st.markdown("Select two variables from the dataset to explore their correlation.")
+
+        # Select numeric columns for correlation
+        numeric_columns = [col for col in daily_metrics.columns if np.issubdtype(daily_metrics[col].dtype, np.number)]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            x_var = st.selectbox("Select X variable", options=numeric_columns, key="x_var_selector")
+
+        with col2:
+            y_var = st.selectbox("Select Y variable", options=numeric_columns, key="y_var_selector")
+
+        if x_var and y_var:
+            # Create scatter plot with regression line
+            fig = px.scatter(
+                daily_metrics,
+                x=x_var,
+                y=y_var,
+                trendline="ols",
+                title=f"Correlation between {x_var} and {y_var}",
+                template='plotly_dark'
+            )
+
+            # Calculate Pearson correlation
+            valid_data = daily_metrics[[x_var, y_var]].dropna()
+            if len(valid_data) > 1:
+                corr, p_val = stats.pearsonr(valid_data[x_var], valid_data[y_var])
+                corr_text = f"**Pearson correlation coefficient:** {corr:.2f} (p-value: {p_val:.3f})"
+            else:
+                corr_text = "**Not enough data to calculate correlation.**"
+
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown(corr_text)
 
 
 if __name__ == "__main__":
