@@ -5,3 +5,4 @@ numpy
 boto3
 scikit-learn
 pyyaml
+scipy

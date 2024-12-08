@@ -5,7 +5,7 @@ features:
   - Us Hits
   - Us Faceoffs Won
   - Us Power Play Minutes
-  - Shot Efficiency
+ # - Shot Efficiency
   - Power Play Efficiency
  # - Us Goals
   - Num Opponent Players
@@ -19,3 +19,5 @@ features:
   - Opponent Power Play Minutes
   - Opponent Shorthanded Goals
   - Us Shorthanded Goals
+  - Faceoff Win Percentage
+  - Number of Games Previously Played
