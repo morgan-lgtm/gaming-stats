@@ -622,13 +622,19 @@ def main():
 
             valid_data = daily_metrics[[x_var, y_var]].dropna()
             if len(valid_data) > 1:
-                corr, p_val = stats.pearsonr(valid_data[x_var], valid_data[y_var])
-                corr_text = f"**Pearson correlation coefficient:** {corr:.2f} (p-value: {p_val:.3f})"
+                try:
+                    corr, p_val = stats.pearsonr(valid_data[x_var], valid_data[y_var])
+                    corr_text = f"**Pearson correlation coefficient:** {corr:.2f} (p-value: {p_val:.3f})"
+                except:
+                    print('failed')
             else:
-                corr_text = "**Not enough data to calculate correlation.**"
+                try:
+                    corr_text = "**Not enough data to calculate correlation.**"
+                except:
+                    print('failed')
 
-            st.plotly_chart(fig, use_container_width=True)
-            st.markdown(corr_text)
+            #st.plotly_chart(fig, use_container_width=True)
+            #st.markdown(corr_text)
 
 if __name__ == "__main__":
     main()
