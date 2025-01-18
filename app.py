@@ -269,18 +269,25 @@ def main():
         st.warning("No data available.")
         return
 
-    # Season selector
-    selected_year = st.sidebar.selectbox(
+    # Move season selector to main area instead of the sidebar
+    seasons = sorted(df['Season Year'].unique())
+    if not seasons:
+        st.warning("No seasons found in data.")
+        return
+    
+    selected_year = st.selectbox(
         "Select Season Year",
-        options=sorted(df['Season Year'].unique()),
-        index=len(df['Season Year'].unique()) - 1
+        options=seasons,
+        index=len(seasons) - 1
     )
+    # Clearly display which season is being viewed
+    st.markdown(f"**Currently viewing data for Season Year: {selected_year}**")
     
-    # Filter data by selected season
-    filtered_df = df[df['Season Year'] == selected_year]
-    
-    # Show/hide individual game points
+    # Keep the toggle for showing individual game data in the sidebar (optional)
     show_individual_games = st.sidebar.checkbox("Show Individual Game Data Points", True)
+    
+    # Filter the data
+    filtered_df = df[df['Season Year'] == selected_year]
     
     # Create tabs
     tabs = st.tabs([
@@ -354,7 +361,6 @@ def main():
     with tabs[1]:
         st.header("Player Performance")
         
-        # Select a single season, single player breakdown
         player = st.selectbox("Select Player", ['Nolan', 'Andrew', 'Morgan'])
         
         # Compare recent vs. previous for that player in the chosen season
@@ -453,7 +459,6 @@ def main():
         
         # Overall season comparison for the team
         st.plotly_chart(season_comparison(df), use_container_width=True)
-        # (Removed the old multi-player season comparison function call)
     
     # ---- 5) METRIC EXPLORER ----
     with tabs[4]:
