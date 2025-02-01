@@ -11,16 +11,37 @@ from scipy import stats
 st.set_page_config(page_title="NHL Gaming Hub", page_icon="🏒", layout="centered")
 
 # ---------------------------------------------------------------
-# Custom CSS for Mobile Responsiveness
+# Custom CSS for Mobile-Friendly Metric Cards
 # ---------------------------------------------------------------
 st.markdown(
     """
     <style>
-    /* Ensure columns stack on smaller screens */
-    @media only screen and (max-width: 768px) {
-        .css-1lcbmhc {  /* st.columns container */
-            flex-direction: column;
-        }
+    .metric-row {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding: 10px 0;
+    }
+    .metric-card {
+        background-color: #262730;
+        padding: 10px;
+        border-radius: 5px;
+        min-width: 120px;
+        text-align: center;
+        flex: 0 0 auto;
+    }
+    .metric-card h4 {
+        margin: 0;
+        font-size: 1em;
+        color: #ddd;
+    }
+    .metric-value {
+        font-size: 1.5em;
+        color: #fff;
+    }
+    .metric-delta {
+        font-size: 0.9em;
+        color: #0f0;
     }
     </style>
     """,
@@ -28,29 +49,44 @@ st.markdown(
 )
 
 # ---------------------------------------------------------------
+# Helper Functions for Metric Cards
+# ---------------------------------------------------------------
+def metric_card(title, value, delta=None):
+    """Return HTML for a single metric card."""
+    delta_html = f"<div class='metric-delta'>{delta:+.1f}</div>" if delta is not None else ""
+    return f"<div class='metric-card'><h4>{title}</h4><div class='metric-value'>{value}</div>{delta_html}</div>"
+
+def metric_row(metrics):
+    """
+    Given a list of (title, value, delta) tuples, returns HTML for a horizontal row of metric cards.
+    Each delta can be None if not applicable.
+    """
+    cards = "".join(metric_card(title, value, delta) for title, value, delta in metrics)
+    return f"<div class='metric-row'>{cards}</div>"
+
+# ---------------------------------------------------------------
 # Data Loading and Preprocessing
 # ---------------------------------------------------------------
 @st.cache_data
 def load_data():
     try:
-        # Let pandas auto-detect the delimiter (this works for both comma and tab)
+        # Let pandas auto-detect delimiter (works for both comma or tab)
         df = pd.read_csv('data/nhl_stats.csv', sep=None, engine='python')
-        # Strip extra whitespace from column names
+        # Strip extra whitespace from column names.
         df.columns = df.columns.str.strip()
         
-        # Check for the Date column; if missing, show the columns found.
+        # Check for the Date column.
         if "Date" not in df.columns:
             st.write("Columns found in CSV:", df.columns.tolist())
             raise KeyError("The 'Date' column is not found in the CSV file. Please verify the header and delimiter.")
         
-        # Convert Date column to datetime.
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
         
-        # List all columns that should be numeric if present.
+        # Convert listed columns to numeric
         numeric_cols = [
             'Us Goals', 'Opponent Goals', 'Us Total Shots', 'Opponent Total Shots',
-            'Us Hits', 'Opponent Hits', 'Us TOA', 'Opponent TOA', 
-            'Us Passing Rate', 'Opponent Passing Rate', 
+            'Us Hits', 'Opponent Hits', 'Us TOA', 'Opponent TOA',
+            'Us Passing Rate', 'Opponent Passing Rate',
             'Us Faceoffs Won', 'Opponent Faceoffs Won',
             'Us Penalty Minutes', 'Opponent Penalty Minutes',
             'Us Power Play Minutes', 'Opponent Power Play Minutes',
@@ -61,7 +97,7 @@ def load_data():
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # Process Season Year as a categorical variable.
+        # Process Season Year as categorical
         if 'Season Year' in df.columns:
             df['Season Year'] = pd.to_numeric(df['Season Year'], errors='coerce')
             df = df.dropna(subset=['Season Year'])
@@ -157,6 +193,20 @@ else:
     selected_season = "All Seasons"
 
 # ---------------------------------------------------------------
+# Display the last updated date based on the most recent "Date"
+# ---------------------------------------------------------------
+last_update = df["Date"].max()
+if pd.isnull(last_update):
+    last_update_str = "N/A"
+else:
+    last_update_str = last_update.strftime("%Y-%m-%d %H:%M:%S")
+st.markdown(
+    f"<div style='text-align: center; font-size: 0.9em; color: gray;'>Last updated: {last_update_str}</div>",
+    unsafe_allow_html=True
+)
+
+
+# ---------------------------------------------------------------
 # Main App Title and Tabs
 # ---------------------------------------------------------------
 st.title("🏒 NHL Gaming Analytics Hub")
@@ -168,19 +218,20 @@ tabs = st.tabs(["Team Overview", "Player Trends", "Special Teams", "Metric Explo
 with tabs[0]:
     st.header("Overall Team Trends")
     
-    # --- Team & Player Total Goals ---
-    team_total_goals = df['Us Goals'].sum()
-    nolan_total = df['Nolan Goal'].sum() if 'Nolan Goal' in df.columns else 0
-    andrew_total = df['Andrew Goal'].sum() if 'Andrew Goal' in df.columns else 0
-    morgan_total = df['Morgan Goal'].sum() if 'Morgan Goal' in df.columns else 0
+    # --- Team & Player Total Goals (Custom Metric Row) ---
+    team_total = f"{df['Us Goals'].sum():.0f}"
+    nolan_total = f"{df['Nolan Goal'].sum():.0f}" if 'Nolan Goal' in df.columns else "N/A"
+    andrew_total = f"{df['Andrew Goal'].sum():.0f}" if 'Andrew Goal' in df.columns else "N/A"
+    morgan_total = f"{df['Morgan Goal'].sum():.0f}" if 'Morgan Goal' in df.columns else "N/A"
+    html_goals = metric_row([
+        ("Team Total Goals", team_total, None),
+        ("Nolan Total Goals", nolan_total, None),
+        ("Andrew Total Goals", andrew_total, None),
+        ("Morgan Total Goals", morgan_total, None)
+    ])
+    st.markdown(html_goals, unsafe_allow_html=True)
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Team Total Goals", f"{team_total_goals:.0f}")
-    col2.metric("Nolan Total Goals", f"{nolan_total:.0f}")
-    col3.metric("Andrew Total Goals", f"{andrew_total:.0f}")
-    col4.metric("Morgan Total Goals", f"{morgan_total:.0f}")
-    
-    st.markdown("### Recent Game Metrics")
+    # --- Recent Game Metrics (4 Metrics) ---
     if len(df) >= 10:
         recent = df.tail(5)
         previous = df.iloc[-10:-5]
@@ -188,27 +239,59 @@ with tabs[0]:
         recent = df.tail(5)
         previous = df.head(5)
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Win Rate (%)", f"{recent['IsWin'].mean() * 100:.1f}",
-                f"{(recent['IsWin'].mean() - previous['IsWin'].mean()) * 100:.1f}")
-    col2.metric("Goals/Game", f"{recent['Us Goals'].mean():.1f}",
-                f"{recent['Us Goals'].mean() - previous['Us Goals'].mean():.1f}")
-    col3.metric("Shot Efficiency (%)", f"{recent['Shot Efficiency'].mean():.1f}",
-                f"{recent['Shot Efficiency'].mean() - previous['Shot Efficiency'].mean():.1f}")
-    col4.metric("Goal Differential", f"{recent['Goal Differential'].mean():.1f}",
-                f"{recent['Goal Differential'].mean() - previous['Goal Differential'].mean():.1f}")
+    win_rate = recent['IsWin'].mean() * 100
+    win_rate_delta = (recent['IsWin'].mean() - previous['IsWin'].mean()) * 100
+    goals_game = recent['Us Goals'].mean()
+    goals_game_delta = recent['Us Goals'].mean() - previous['Us Goals'].mean()
+    shot_eff = recent['Shot Efficiency'].mean()
+    shot_eff_delta = recent['Shot Efficiency'].mean() - previous['Shot Efficiency'].mean()
+    goal_diff = recent['Goal Differential'].mean()
+    goal_diff_delta = recent['Goal Differential'].mean() - previous['Goal Differential'].mean()
+    html_recent = metric_row([
+        ("Win Rate (%)", f"{win_rate:.1f}", win_rate_delta),
+        ("Goals/Game", f"{goals_game:.1f}", goals_game_delta),
+        ("Shot Efficiency (%)", f"{shot_eff:.1f}", shot_eff_delta),
+        ("Goal Differential", f"{goal_diff:.1f}", goal_diff_delta)
+    ])
+    st.markdown(html_recent, unsafe_allow_html=True)
     
-    st.markdown("### Goals per Game Trend")
+    # --- Additional Team Metrics (6 Metrics, 2 rows of 3) ---
+    shot_ratio = recent['Shot_Ratio'].mean()
+    shot_ratio_delta = recent['Shot_Ratio'].mean() - previous['Shot_Ratio'].mean()
+    hit_diff = recent['Hit_Differential'].mean()
+    hit_diff_delta = recent['Hit_Differential'].mean() - previous['Hit_Differential'].mean()
+    toa_diff = recent['TOA_Differential'].mean()
+    toa_diff_delta = recent['TOA_Differential'].mean() - previous['TOA_Differential'].mean()
+    passing_diff = recent['Passing_Differential'].mean()
+    passing_diff_delta = recent['Passing_Differential'].mean() - previous['Passing_Differential'].mean()
+    faceoff_diff = recent['Faceoff_Differential'].mean()
+    faceoff_diff_delta = recent['Faceoff_Differential'].mean() - previous['Faceoff_Differential'].mean()
+    shorthanded_diff = recent['Shorthanded_Differential'].mean()
+    shorthanded_diff_delta = recent['Shorthanded_Differential'].mean() - previous['Shorthanded_Differential'].mean()
+    html_additional1 = metric_row([
+        ("Shot Ratio (%)", f"{shot_ratio:.1f}", shot_ratio_delta),
+        ("Hit Differential", f"{hit_diff:.1f}", hit_diff_delta),
+        ("TOA Differential", f"{toa_diff:.1f}", toa_diff_delta)
+    ])
+    html_additional2 = metric_row([
+        ("Passing Differential", f"{passing_diff:.1f}", passing_diff_delta),
+        ("Faceoff Differential", f"{faceoff_diff:.1f}", faceoff_diff_delta),
+        ("Shorthanded Diff", f"{shorthanded_diff:.1f}", shorthanded_diff_delta)
+    ])
+    st.markdown(html_additional1, unsafe_allow_html=True)
+    st.markdown(html_additional2, unsafe_allow_html=True)
+    
+    # --- Goals per Game Trend Chart (unchanged) ---
     fig_goals = go.Figure()
     fig_goals.add_trace(go.Scatter(
-        x=df['Game_Number'], 
+        x=df['Game_Number'],
         y=df['Us Goals'],
         mode='markers+lines',
         name="Game Goals",
         marker=dict(color='cyan')
     ))
     fig_goals.add_trace(go.Scatter(
-        x=df['Game_Number'], 
+        x=df['Game_Number'],
         y=df['Goals_Rolling'],
         mode='lines',
         name="5-Game Average",
@@ -217,10 +300,10 @@ with tabs[0]:
     fig_goals.update_layout(xaxis_title="Game Number", yaxis_title="Goals", template="plotly_dark")
     st.plotly_chart(fig_goals, use_container_width=True)
     
-    st.markdown("### Rolling Win Rate Trend")
+    # --- Rolling Win Rate Trend Chart (unchanged) ---
     fig_win = go.Figure()
     fig_win.add_trace(go.Scatter(
-        x=df['Game_Number'], 
+        x=df['Game_Number'],
         y=df['WinRate_Rolling'],
         mode='lines+markers',
         name="Win Rate (5-Game Rolling)",
@@ -229,47 +312,11 @@ with tabs[0]:
     fig_win.update_layout(xaxis_title="Game Number", yaxis_title="Win Rate (%)", template="plotly_dark")
     st.plotly_chart(fig_win, use_container_width=True)
     
-    st.markdown("### Additional Team Metrics")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Shot Ratio (%)", f"{recent['Shot_Ratio'].mean():.1f}",
-                f"{recent['Shot_Ratio'].mean() - previous['Shot_Ratio'].mean():.1f}")
-    col2.metric("Hit Differential", f"{recent['Hit_Differential'].mean():.1f}",
-                f"{recent['Hit_Differential'].mean() - previous['Hit_Differential'].mean():.1f}")
-    col3.metric("TOA Differential", f"{recent['TOA_Differential'].mean():.1f}",
-                f"{recent['TOA_Differential'].mean() - previous['TOA_Differential'].mean():.1f}")
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Passing Differential", f"{recent['Passing_Differential'].mean():.1f}",
-                f"{recent['Passing_Differential'].mean() - previous['Passing_Differential'].mean():.1f}")
-    col2.metric("Faceoff Differential", f"{recent['Faceoff_Differential'].mean():.1f}",
-                f"{recent['Faceoff_Differential'].mean() - previous['Faceoff_Differential'].mean():.1f}")
-    col3.metric("Shorthanded Diff", f"{recent['Shorthanded_Differential'].mean():.1f}",
-                f"{recent['Shorthanded_Differential'].mean() - previous['Shorthanded_Differential'].mean():.1f}")
-    
-    st.markdown("#### Shot Ratio Trend")
-    fig_shot = go.Figure()
-    fig_shot.add_trace(go.Scatter(
-        x=df['Game_Number'], 
-        y=df['Shot_Ratio'],
-        mode='markers+lines',
-        name="Shot Ratio",
-        marker=dict(color='teal')
-    ))
-    fig_shot.add_trace(go.Scatter(
-        x=df['Game_Number'], 
-        y=df['Shot_Ratio_Rolling'],
-        mode='lines',
-        name="5-Game Average",
-        line=dict(width=3, color='darkcyan')
-    ))
-    fig_shot.update_layout(xaxis_title="Game Number", yaxis_title="Shot Ratio (%)", template="plotly_dark")
-    st.plotly_chart(fig_shot, use_container_width=True)
-    
+    # --- Player Comparison Over Time Chart (unchanged) ---
     st.subheader("Player Comparison Over Time")
     cum_nolan = df['Nolan Goal'].cumsum() if 'Nolan Goal' in df.columns else None
     cum_andrew = df['Andrew Goal'].cumsum() if 'Andrew Goal' in df.columns else None
     cum_morgan = df['Morgan Goal'].cumsum() if 'Morgan Goal' in df.columns else None
-    
     fig_comp = go.Figure()
     if cum_nolan is not None:
         fig_comp.add_trace(go.Scatter(
@@ -310,14 +357,14 @@ with tabs[1]:
         st.markdown(f"### {player}'s Goals Over Time")
         fig_player = go.Figure()
         fig_player.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df[f'{player} Goal'],
             mode='markers',
             name="Game Goals",
             marker=dict(color='magenta')
         ))
         fig_player.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df[f'{player}_Rolling'],
             mode='lines',
             name="5-Game Average",
@@ -344,25 +391,36 @@ with tabs[2]:
     else:
         recent = df.tail(5)
         previous = df.head(5)
-    col1, col2, col3 = st.columns(3)
+    # Use a custom metric row for the three special teams metrics.
+    metrics_special = []
     if has_powerplay:
-        col1.metric("Power Play Eff.", f"{recent['Power Play Efficiency'].mean():.2f}", f"{(recent['Power Play Efficiency'].mean() - previous['Power Play Efficiency'].mean()):.2f}")
+        pp_val = f"{recent['Power Play Efficiency'].mean():.2f}"
+        pp_delta = recent['Power Play Efficiency'].mean() - previous['Power Play Efficiency'].mean()
+        metrics_special.append(("Power Play Eff.", pp_val, pp_delta))
     if has_faceoffs:
-        col2.metric("Faceoff Win Rate", f"{recent['Faceoff Win Rate'].mean():.1f}%", f"{(recent['Faceoff Win Rate'].mean() - previous['Faceoff Win Rate'].mean()):.1f}%")
+        fo_val = f"{recent['Faceoff Win Rate'].mean():.1f}%"
+        fo_delta = recent['Faceoff Win Rate'].mean() - previous['Faceoff Win Rate'].mean()
+        metrics_special.append(("Faceoff Win Rate", fo_val, fo_delta))
     if has_penalties:
-        col3.metric("Penalty Minutes/Game", f"{recent['Us Penalty Minutes'].mean():.1f}", f"{(recent['Us Penalty Minutes'].mean() - previous['Us Penalty Minutes'].mean()):.1f}")
+        pen_val = f"{recent['Us Penalty Minutes'].mean():.1f}"
+        pen_delta = recent['Us Penalty Minutes'].mean() - previous['Us Penalty Minutes'].mean()
+        metrics_special.append(("Penalty Minutes/Game", pen_val, pen_delta))
+    if metrics_special:
+        st.markdown(metric_row(metrics_special), unsafe_allow_html=True)
+    
+    # Special Teams Trend Charts (unchanged)
     if has_powerplay:
         st.markdown("#### Power Play Efficiency Trend")
         fig_pp = go.Figure()
         fig_pp.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df['Power Play Efficiency'],
             mode='markers+lines',
             name="Game PP Eff.",
             marker=dict(color='gold')
         ))
         fig_pp.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df['PowerPlay_Rolling'],
             mode='lines',
             name="5-Game Average",
@@ -374,14 +432,14 @@ with tabs[2]:
         st.markdown("#### Faceoff Win Rate Trend")
         fig_fo = go.Figure()
         fig_fo.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df['Faceoff Win Rate'],
             mode='markers+lines',
             name="Game Faceoff Win Rate",
             marker=dict(color='violet')
         ))
         fig_fo.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df['FaceoffWin_Rolling'],
             mode='lines',
             name="5-Game Average",
@@ -393,14 +451,14 @@ with tabs[2]:
         st.markdown("#### Penalty Minutes Trend")
         fig_pm = go.Figure()
         fig_pm.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df['Us Penalty Minutes'],
             mode='markers+lines',
             name="Game Penalty Minutes",
             marker=dict(color='red')
         ))
         fig_pm.add_trace(go.Scatter(
-            x=df['Game_Number'], 
+            x=df['Game_Number'],
             y=df['PenaltyMinutes_Rolling'],
             mode='lines',
             name="5-Game Average",
