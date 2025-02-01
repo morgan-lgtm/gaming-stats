@@ -209,7 +209,7 @@ st.markdown(
 # ---------------------------------------------------------------
 # Main App Title and Tabs
 # ---------------------------------------------------------------
-st.title("🏒 NHL Gaming Analytics Hub")
+st.title("🏒 NHL Stats Report")
 tabs = st.tabs(["Team Overview", "Player Trends", "Special Teams", "Metric Explorer"])
 
 # ------------------------------
